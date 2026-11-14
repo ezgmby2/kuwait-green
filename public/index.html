@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kuwait Green</title>
+  <meta name="description" content="Grow a plant, snap a photo, and help turn Kuwait's map from brown to green.">
+  <meta name="theme-color" content="#2f7d4a">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/app.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <img src="/icons/icon.svg" alt="" width="34" height="34">
+      <div>
+        <h1 data-i18n="appName">Kuwait Green</h1>
+        <p class="brand-sub" data-i18n="tagline">Let's turn Kuwait green, one plant at a time</p>
+      </div>
+    </div>
+    <button class="lang-toggle" id="langToggle" type="button" aria-label="Switch language">عربي</button>
+  </header>
+
+  <section class="progress-card" aria-live="polite">
+    <div class="progress-head">
+      <span><strong id="greenPct">0%</strong> <span data-i18n="ofKuwaitGreen">of Kuwait's areas are green</span></span>
+      <span class="progress-count"><span id="greenZones">0</span>/<span id="totalZones">137</span></span>
+    </div>
+    <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </section>
+
+  <main id="main" tabindex="-1">
+    <!-- MAP -->
+    <section class="view view-map active" id="view-map" aria-labelledby="tab-map">
+      <div class="stats-row">
+        <div class="stat"><span class="stat-num" id="statPlants">0</span><span class="stat-label" data-i18n="plants">Plants</span></div>
+        <div class="stat"><span class="stat-num" id="statGrowers">0</span><span class="stat-label" data-i18n="growers">Growers</span></div>
+        <div class="stat"><span class="stat-num" id="statWeek">0</span><span class="stat-label" data-i18n="thisWeek">This week</span></div>
+      </div>
+      <div class="map-card">
+        <div class="map-wrap" id="mainMap" role="application" aria-label="Map of Kuwait"></div>
+        <div class="map-controls">
+          <button type="button" class="icon-btn" id="zoomIn" aria-label="Zoom in">+</button>
+          <button type="button" class="icon-btn" id="zoomOut" aria-label="Zoom out">−</button>
+          <button type="button" class="icon-btn city" id="zoomCity" aria-label="Zoom to Kuwait City" title="Kuwait City">🏙️</button>
+          <button type="button" class="icon-btn" id="zoomReset" aria-label="Show all of Kuwait" title="All of Kuwait">⟲</button>
+        </div>
+        <div class="legend" aria-hidden="true">
+          <span><i class="sw lvl-0"></i><span data-i18n="legendNone">No plants</span></span>
+          <span><i class="sw lvl-1"></i>1+</span>
+          <span><i class="sw lvl-2"></i>3+</span>
+          <span><i class="sw lvl-3"></i>10+</span>
+          <span><i class="sw lvl-4"></i>25+</span>
+        </div>
+      </div>
+      <p class="hint" data-i18n="mapHint">Tap an area to see its plants. Pinch or scroll to zoom.</p>
+
+      <div class="two-col">
+        <section class="card">
+          <h2 data-i18n="greenestAreas">🌳 Greenest areas</h2>
+          <ol class="rank-list" id="topZones"></ol>
+        </section>
+        <section class="card">
+          <h2 data-i18n="topGrowers">🏆 Top growers</h2>
+          <ol class="rank-list" id="topGrowers"></ol>
+        </section>
+      </div>
+      <p class="attribution" id="attribution"></p>
+    </section>
+
+    <!-- FEED -->
+    <section class="view view-feed" id="view-feed" aria-labelledby="tab-feed" hidden>
+      <div class="view-head">
+        <h2 data-i18n="recentPlants">Recently planted</h2>
+        <select id="feedZone" aria-label="Filter by area"></select>
+      </div>
+      <div class="feed" id="feed"></div>
+      <button type="button" class="btn btn-ghost btn-block" id="feedMore" hidden data-i18n="loadMore">Load more</button>
+    </section>
+
+    <!-- LOG A PLANT -->
+    <section class="view view-log" id="view-log" aria-labelledby="tab-log" hidden>
+      <div class="view-head"><h2 data-i18n="logPlant">Log a plant</h2></div>
+      <div class="auth-needed card" id="logAuthNeeded" hidden>
+        <p data-i18n="signInToLog">Sign in to log your plants and turn your area green.</p>
+        <button type="button" class="btn btn-primary" data-goto="me" data-i18n="signIn">Sign in</button>
+      </div>
+      <form id="logForm" class="card form" novalidate>
+        <ol class="steps">
+          <li>
+            <h3><span class="step-n">1</span> <span data-i18n="stepPhoto">Take a photo</span></h3>
+            <label class="photo-drop" id="photoDrop">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" class="visually-hidden">
+              <img id="photoPreview" alt="" hidden>
+              <span class="photo-placeholder" id="photoPlaceholder">
+                <span class="big-emoji" aria-hidden="true">📷</span>
+                <span data-i18n="tapToPhoto">Tap to take or choose a photo</span>
+              </span>
+            </label>
+          </li>
+          <li>
+            <h3><span class="step-n">2</span> <span data-i18n="stepWhat">What did you plant?</span></h3>
+            <div class="species-grid" id="speciesGrid" role="radiogroup" aria-label="Plant type"></div>
+            <label class="field"><span data-i18n="nickname">Nickname (optional)</span>
+              <input type="text" id="nickname" maxlength="40" autocomplete="off" data-i18n-ph="nicknamePh" placeholder="e.g. Little Sidr">
+            </label>
+            <label class="field"><span data-i18n="note">Note (optional)</span>
+              <textarea id="note" maxlength="280" rows="2" data-i18n-ph="notePh" placeholder="Where, why, any story…"></textarea>
+            </label>
+          </li>
+          <li>
+            <h3><span class="step-n">3</span> <span data-i18n="stepWhere">Where is it?</span></h3>
+            <div class="loc-actions">
+              <button type="button" class="btn btn-secondary" id="useGps"><span aria-hidden="true">📍</span> <span data-i18n="useMyLocation">Use my location</span></button>
+              <select id="areaSelect" aria-label="Choose your area"></select>
+            </div>
+            <div class="map-wrap map-pick" id="pickMap" role="application" aria-label="Tap the map to set the location"></div>
+            <p class="loc-status" id="locStatus" data-i18n="tapMapToPin">Or tap the map to drop a pin.</p>
+          </li>
+        </ol>
+        <p class="form-error" id="logError" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="logSubmit"><span aria-hidden="true">🌱</span> <span data-i18n="plantIt">Plant it!</span></button>
+        <p class="privacy-note" data-i18n="privacyNote">🔒 Your exact location stays private. Others only see the area name. Photo metadata (like GPS) is removed.</p>
+      </form>
+    </section>
+
+    <!-- LEARN -->
+    <section class="view view-learn" id="view-learn" aria-labelledby="tab-learn" hidden>
+      <div class="view-head"><h2 data-i18n="whyGreen">Why plant in Kuwait?</h2></div>
+      <div class="facts">
+        <div class="fact"><span class="fact-emoji" aria-hidden="true">🌡️</span><p data-i18n="fact1">Kuwait regularly reaches 50°C in summer. Trees can cool streets by several degrees through shade and evaporation.</p></div>
+        <div class="fact"><span class="fact-emoji" aria-hidden="true">🌪️</span><p data-i18n="fact2">Plants hold sandy soil in place and act as windbreaks, reducing dust storms.</p></div>
+        <div class="fact"><span class="fact-emoji" aria-hidden="true">💨</span><p data-i18n="fact3">Every tree absorbs CO₂ and filters dust from the air we breathe.</p></div>
+        <div class="fact"><span class="fact-emoji" aria-hidden="true">💧</span><p data-i18n="fact4">Native desert plants like Sidr, Ghaf and Arfaj need very little water once established.</p></div>
+      </div>
+      <h2 class="section-title" data-i18n="tipsTitle">Smart watering tips</h2>
+      <ul class="tips">
+        <li data-i18n="tip1">Water early in the morning or after sunset to avoid evaporation.</li>
+        <li data-i18n="tip2">Water deeply but less often — it trains roots to grow down.</li>
+        <li data-i18n="tip3">Cover soil with mulch or gravel to keep it cool and moist.</li>
+        <li data-i18n="tip4">Autumn (Oct–Nov) and late winter (Feb–Mar) are the best planting seasons.</li>
+        <li data-i18n="tip5">Reuse water from washing vegetables or your AC condensate.</li>
+      </ul>
+      <h2 class="section-title" data-i18n="plantGuide">Plants that love Kuwait</h2>
+      <div class="guide" id="speciesGuide"></div>
+    </section>
+
+    <!-- ME -->
+    <section class="view view-me" id="view-me" aria-labelledby="tab-me" hidden>
+      <div id="authBox" class="card form auth-box" hidden>
+        <div class="auth-tabs" role="tablist">
+          <button type="button" role="tab" class="auth-tab active" id="authTabLogin" aria-selected="true" data-i18n="signIn">Sign in</button>
+          <button type="button" role="tab" class="auth-tab" id="authTabRegister" aria-selected="false" data-i18n="createAccount">Create account</button>
+        </div>
+        <form id="authForm" novalidate>
+          <label class="field"><span data-i18n="username">Username</span>
+            <input type="text" id="authUsername" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" autocapitalize="none" spellcheck="false">
+          </label>
+          <label class="field" id="displayNameField" hidden><span data-i18n="displayName">Display name</span>
+            <input type="text" id="authDisplayName" autocomplete="nickname" maxlength="40">
+          </label>
+          <label class="field"><span data-i18n="password">Password</span>
+            <input type="password" id="authPassword" autocomplete="current-password" required minlength="8" maxlength="200">
+          </label>
+          <p class="field-help" id="pwHelp" hidden data-i18n="pwHelp">At least 8 characters.</p>
+          <p class="form-error" id="authError" role="alert" hidden></p>
+          <button type="submit" class="btn btn-primary btn-block" id="authSubmit" data-i18n="signIn">Sign in</button>
+        </form>
+      </div>
+
+      <div id="profileBox" hidden>
+        <div class="card profile">
+          <div class="avatar" id="avatar" aria-hidden="true">🌱</div>
+          <div class="profile-info">
+            <h2 id="profileName"></h2>
+            <p class="muted">@<span id="profileUsername"></span></p>
+          </div>
+          <button type="button" class="btn btn-ghost" id="logoutBtn" data-i18n="signOut">Sign out</button>
+        </div>
+        <div class="stats-row">
+          <div class="stat"><span class="stat-num" id="myPlants">0</span><span class="stat-label" data-i18n="myPlants">My plants</span></div>
+          <div class="stat"><span class="stat-num" id="myZones">0</span><span class="stat-label" data-i18n="areasGreened">Areas greened</span></div>
+          <div class="stat"><span class="stat-num" id="myBadge">🌱</span><span class="stat-label" id="myBadgeLabel">Seedling</span></div>
+        </div>
+        <h2 class="section-title" data-i18n="myGarden">My garden</h2>
+        <div class="feed" id="myFeed"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button type="button" class="tab active" id="tab-map" data-view="map" aria-current="page"><span class="tab-ico" aria-hidden="true">🗺️</span><span data-i18n="tabMap">Map</span></button>
+    <button type="button" class="tab" id="tab-feed" data-view="feed"><span class="tab-ico" aria-hidden="true">🌿</span><span data-i18n="tabFeed">Feed</span></button>
+    <button type="button" class="tab tab-plant" id="tab-log" data-view="log"><span class="tab-ico plant-fab" aria-hidden="true">＋</span><span data-i18n="tabLog">Plant</span></button>
+    <button type="button" class="tab" id="tab-learn" data-view="learn"><span class="tab-ico" aria-hidden="true">📖</span><span data-i18n="tabLearn">Learn</span></button>
+    <button type="button" class="tab" id="tab-me" data-view="me"><span class="tab-ico" aria-hidden="true">👤</span><span data-i18n="tabMe">Me</span></button>
+  </nav>
+
+  <!-- Zone details sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <section class="sheet" id="zoneSheet" role="dialog" aria-modal="true" aria-labelledby="zoneSheetTitle" hidden>
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div>
+        <h2 id="zoneSheetTitle"></h2>
+        <p class="muted" id="zoneSheetGov"></p>
+      </div>
+      <button type="button" class="icon-btn" id="sheetClose" aria-label="Close">✕</button>
+    </div>
+    <div class="zone-badge" id="zoneSheetBadge"></div>
+    <div class="feed feed-compact" id="zoneSheetFeed"></div>
+    <button type="button" class="btn btn-primary btn-block" id="zoneSheetPlant"><span aria-hidden="true">🌱</span> <span data-i18n="plantHere">Plant in this area</span></button>
+  </section>
+
+  <!-- Celebration -->
+  <div class="celebrate" id="celebrate" role="status" hidden>
+    <div class="celebrate-card">
+      <div class="celebrate-emoji" aria-hidden="true">🌳</div>
+      <h2 id="celebrateTitle"></h2>
+      <p id="celebrateText"></p>
+      <button type="button" class="btn btn-primary" id="celebrateOk" data-i18n="seeMap">See the map</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
