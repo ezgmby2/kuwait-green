@@ -54,6 +54,8 @@ const STRINGS = {
     justNow: 'just now', minAgo: '{n}m ago', hrAgo: '{n}h ago', dayAgo: '{n}d ago',
     photoTooBig: 'Could not read that photo. Try another one.',
     plantsCount: '{n} plants',
+    demoBanner: '🧪 Live demo — everything you add is saved in this browser only.',
+    tryGuest: 'Try it as a guest',
   },
   ar: {
     skip: 'انتقل إلى المحتوى',
@@ -109,6 +111,8 @@ const STRINGS = {
     justNow: 'الآن', minAgo: 'قبل {n} د', hrAgo: 'قبل {n} س', dayAgo: 'قبل {n} يوم',
     photoTooBig: 'تعذّرت قراءة الصورة. جرّب صورة أخرى.',
     plantsCount: '{n} نبتة',
+    demoBanner: '🧪 نسخة تجريبية — كل ما تضيفه يُحفظ في هذا المتصفح فقط.',
+    tryGuest: 'جرّب كضيف',
   },
 };
 

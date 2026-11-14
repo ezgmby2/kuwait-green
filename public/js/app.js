@@ -1,4 +1,4 @@
-import { api, ApiError } from './api.js';
+import { api, ApiError, useApi } from './api.js';
 import { t, applyI18n, setLang, getLang } from './i18n.js';
 import { KuwaitMap, levelFor, zoneAt } from './map.js';
 
@@ -534,6 +534,15 @@ async function boot() {
   $('#authTabLogin').addEventListener('click', () => setAuthMode('login'));
   $('#authTabRegister').addEventListener('click', () => setAuthMode('register'));
   $('#authForm').addEventListener('submit', submitAuth);
+  document.querySelectorAll('.guest-btn').forEach((b) => b.addEventListener('click', async () => {
+    try {
+      const { user } = await api.guest();
+      state.user = user;
+      toast(t('welcome', { name: user.displayName }));
+      await refreshMe();
+      show('log');
+    } catch (err) { toast(errMsg(err)); }
+  }));
   $('#logoutBtn').addEventListener('click', async () => {
     try { await api.logout(); } catch { /* ignore */ }
     state.user = null;
@@ -542,7 +551,19 @@ async function boot() {
     renderMe();
   });
 
-  // Load data.
+  // Load data. With no server behind the page (e.g. GitHub Pages), switch to the in-browser demo mode.
+  try {
+    await api.zones();
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+      const { localApi } = await import('./local-api.js');
+      useApi(localApi);
+      state.demo = true;
+      document.body.classList.add('demo-mode');
+      $('#demoBanner').hidden = false;
+      document.querySelectorAll('.guest-btn').forEach((b) => { b.hidden = false; });
+    }
+  }
   const [zonesRes, speciesRes, meRes] = await Promise.allSettled([api.zones(), api.species(), api.me()]);
   if (zonesRes.status !== 'fulfilled') { toast(errMsg(zonesRes.reason)); return; }
   state.zones = zonesRes.value.zones;
@@ -565,7 +586,7 @@ async function boot() {
   // Keep the map live while the app is open.
   setInterval(() => { if (document.visibilityState === 'visible' && state.view === 'map') refreshStats(); }, 60_000);
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 boot();

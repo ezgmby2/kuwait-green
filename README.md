@@ -29,6 +29,11 @@ The goal: spread awareness and make Kuwait greener, one plant at a time.
 | Abuse | Rate limits on API, login and upload. Users can report posts, and a post is hidden after 3 reports. You can delete only your own plants |
 | Headers | CSP, HSTS (in production), X-Frame-Options DENY, COOP/CORP, Referrer-Policy, Permissions-Policy |
 
+## Try it now (live demo)
+
+**https://ezgmby2.github.io/kuwait-green/** opens in any browser, on a phone or a computer. Tap **＋ → Try it as a guest** to log a plant and watch its area turn green.
+The live demo runs fully in your browser (no server), so what you add is saved on your device only.
+
 ## Desktop app (no terminal needed)
 
 Download the installer for your computer from the **[Releases page](https://github.com/ezgmby2/kuwait-green/releases/latest)**:

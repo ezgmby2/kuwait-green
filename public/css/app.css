@@ -79,6 +79,10 @@ img { max-width: 100%; display: block; }
 .brand-sub { margin: 0; font-size: .8rem; color: var(--muted); }
 .lang-toggle { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
 
+/* Demo banner */
+.demo-banner { margin: 0 16px 8px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text); font-size: .82rem; text-align: center; }
+.auth-needed-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
 /* Progress */
 .progress-card { margin: 4px 16px 12px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
 .progress-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .9rem; margin-bottom: 8px; }

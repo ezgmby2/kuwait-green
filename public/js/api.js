@@ -15,22 +15,25 @@ async function request(method, url, body) {
 }
 
 export const api = {
-  me: () => request('GET', '/api/auth/me'),
-  login: (username, password) => request('POST', '/api/auth/login', { username, password }),
-  register: (username, password, displayName) => request('POST', '/api/auth/register', { username, password, displayName }),
-  logout: () => request('POST', '/api/auth/logout'),
-  zones: () => request('GET', '/api/zones'),
-  species: () => request('GET', '/api/species'),
-  stats: () => request('GET', '/api/stats'),
+  me: () => request('GET', 'api/auth/me'),
+  login: (username, password) => request('POST', 'api/auth/login', { username, password }),
+  register: (username, password, displayName) => request('POST', 'api/auth/register', { username, password, displayName }),
+  logout: () => request('POST', 'api/auth/logout'),
+  zones: () => request('GET', 'api/zones'),
+  species: () => request('GET', 'api/species'),
+  stats: () => request('GET', 'api/stats'),
   plants: ({ zone, before, limit } = {}) => {
     const p = new URLSearchParams();
     if (zone) p.set('zone', zone);
     if (before) p.set('before', before);
     if (limit) p.set('limit', limit);
-    return request('GET', `/api/plants?${p}`);
+    return request('GET', `api/plants?${p}`);
   },
-  myPlants: () => request('GET', '/api/plants/mine'),
-  createPlant: (formData) => request('POST', '/api/plants', formData),
-  deletePlant: (id) => request('DELETE', `/api/plants/${encodeURIComponent(id)}`),
-  reportPlant: (id, reason) => request('POST', `/api/plants/${encodeURIComponent(id)}/report`, { reason }),
+  myPlants: () => request('GET', 'api/plants/mine'),
+  createPlant: (formData) => request('POST', 'api/plants', formData),
+  deletePlant: (id) => request('DELETE', `api/plants/${encodeURIComponent(id)}`),
+  reportPlant: (id, reason) => request('POST', `api/plants/${encodeURIComponent(id)}/report`, { reason }),
 };
+
+/** Swap in another implementation with the same methods (used by the in-browser demo mode). */
+export function useApi(impl) { Object.assign(api, impl); }
