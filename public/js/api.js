@@ -32,6 +32,9 @@ export const api = {
   myPlants: () => request('GET', 'api/plants/mine'),
   createPlant: (formData) => request('POST', 'api/plants', formData),
   deletePlant: (id) => request('DELETE', `api/plants/${encodeURIComponent(id)}`),
+  plant: (id) => request('GET', `api/plants/${encodeURIComponent(id)}`),
+  waterPlant: (id) => request('POST', `api/plants/${encodeURIComponent(id)}/water`),
+  addUpdate: (id, formData) => request('POST', `api/plants/${encodeURIComponent(id)}/updates`, formData),
   reportPlant: (id, reason) => request('POST', `api/plants/${encodeURIComponent(id)}/report`, { reason }),
 };
 

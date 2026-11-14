@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Kuwait Green</title>
-  <meta name="description" content="Grow a plant, snap a photo, and help turn Kuwait's map from brown to green.">
+  <title>عرفج | ARFAJ</title>
+  <meta name="description" content="عرفج — تطبيق زراعي مجتمعي: ابدأ رحلتك الزراعية وشاهد خريطة الكويت تتحول من البني إلى الأخضر.">
   <meta name="theme-color" content="#2f7d4a">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -19,14 +19,19 @@
     <div class="brand">
       <img src="icons/icon.svg" alt="" width="34" height="34">
       <div>
-        <h1 data-i18n="appName">Kuwait Green</h1>
-        <p class="brand-sub" data-i18n="tagline">Let's turn Kuwait green, one plant at a time</p>
+        <h1><span data-i18n="appName">عرفج</span> <span class="brand-latin">ARFAJ</span></h1>
+        <p class="brand-sub" data-i18n="tagline">نزرع أمل، ونحصد أثر</p>
       </div>
     </div>
     <button class="lang-toggle" id="langToggle" type="button" aria-label="Switch language">عربي</button>
   </header>
 
   <p class="demo-banner" id="demoBanner" hidden data-i18n="demoBanner">🧪 Live demo — everything you add is saved in this browser only.</p>
+
+  <div class="reminder-banner" id="reminderBanner" role="status" hidden>
+    <span id="reminderText"></span>
+    <button type="button" class="btn btn-primary btn-sm" id="reminderGo" data-i18n="reminderGo">افتح</button>
+  </div>
 
   <section class="progress-card" aria-live="polite">
     <div class="progress-head">
@@ -42,7 +47,7 @@
     <!-- MAP -->
     <section class="view view-map active" id="view-map" aria-labelledby="tab-map">
       <div class="stats-row">
-        <div class="stat"><span class="stat-num" id="statPlants">0</span><span class="stat-label" data-i18n="plants">Plants</span></div>
+        <div class="stat"><span class="stat-num" id="statPlants">0</span><span class="stat-label" data-i18n="journeys">Journeys</span></div>
         <div class="stat"><span class="stat-num" id="statGrowers">0</span><span class="stat-label" data-i18n="growers">Growers</span></div>
         <div class="stat"><span class="stat-num" id="statWeek">0</span><span class="stat-label" data-i18n="thisWeek">This week</span></div>
       </div>
@@ -55,6 +60,7 @@
           <button type="button" class="icon-btn" id="zoomReset" aria-label="Show all of Kuwait" title="All of Kuwait">⟲</button>
         </div>
         <div class="legend" aria-hidden="true">
+          <span><i class="dot-sw"></i><span data-i18n="legendDot">Each dot = a journey</span></span>
           <span><i class="sw lvl-0"></i><span data-i18n="legendNone">No plants</span></span>
           <span><i class="sw lvl-1"></i>1+</span>
           <span><i class="sw lvl-2"></i>3+</span>
@@ -89,7 +95,37 @@
 
     <!-- LOG A PLANT -->
     <section class="view view-log" id="view-log" aria-labelledby="tab-log" hidden>
-      <div class="view-head"><h2 data-i18n="logPlant">Log a plant</h2></div>
+      <section class="card wizard" id="startPlanting" aria-labelledby="startTitle">
+        <h2 id="startTitle" data-i18n="startTitle">Start planting</h2>
+        <p class="muted" data-i18n="startIntro">Tell us about your space and we'll suggest 3 plants that suit Kuwait's season right now.</p>
+        <fieldset class="choice-group" data-name="space">
+          <legend data-i18n="qSpace">How much space do you have?</legend>
+          <button type="button" class="choice" data-value="small"><span aria-hidden="true">🪴</span> <span data-i18n="space_small">Small</span></button>
+          <button type="button" class="choice" data-value="medium"><span aria-hidden="true">🏡</span> <span data-i18n="space_medium">Medium</span></button>
+          <button type="button" class="choice" data-value="large"><span aria-hidden="true">🌳</span> <span data-i18n="space_large">Large</span></button>
+        </fieldset>
+        <fieldset class="choice-group" data-name="place">
+          <legend data-i18n="qPlace">Where will you plant?</legend>
+          <button type="button" class="choice" data-value="balcony"><span aria-hidden="true">🏢</span> <span data-i18n="place_balcony">Balcony</span></button>
+          <button type="button" class="choice" data-value="roof"><span aria-hidden="true">🏠</span> <span data-i18n="place_roof">Roof</span></button>
+          <button type="button" class="choice" data-value="ground"><span aria-hidden="true">🌱</span> <span data-i18n="place_ground">Garden soil</span></button>
+          <button type="button" class="choice" data-value="indoor"><span aria-hidden="true">🛋️</span> <span data-i18n="place_indoor">Indoors</span></button>
+        </fieldset>
+        <fieldset class="choice-group" data-name="sun">
+          <legend data-i18n="qSun">How much sun?</legend>
+          <button type="button" class="choice" data-value="full"><span aria-hidden="true">☀️</span> <span data-i18n="sun_full">Full sun</span></button>
+          <button type="button" class="choice" data-value="partial"><span aria-hidden="true">⛅</span> <span data-i18n="sun_partial">Partial</span></button>
+          <button type="button" class="choice" data-value="shade"><span aria-hidden="true">🌥️</span> <span data-i18n="sun_shade">Shade</span></button>
+        </fieldset>
+        <p class="form-error" id="wizardError" role="alert" hidden></p>
+        <button type="button" class="btn btn-primary btn-block" id="recommendBtn"><span aria-hidden="true">✨</span> <span data-i18n="recommendBtn">Suggest plants</span></button>
+        <div class="reco" id="recoResults" aria-live="polite" hidden>
+          <h3 id="recoTitle"></h3>
+          <div class="reco-list" id="recoList"></div>
+        </div>
+      </section>
+
+      <div class="view-head" id="publishHead"><h2 data-i18n="logPlant">Publish your planting journey</h2></div>
       <div class="auth-needed card" id="logAuthNeeded" hidden>
         <p data-i18n="signInToLog">Sign in to log your plants and turn your area green.</p>
         <div class="auth-needed-actions">
@@ -131,7 +167,7 @@
           </li>
         </ol>
         <p class="form-error" id="logError" role="alert" hidden></p>
-        <button type="submit" class="btn btn-primary btn-block btn-lg" id="logSubmit"><span aria-hidden="true">🌱</span> <span data-i18n="plantIt">Plant it!</span></button>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="logSubmit"><span aria-hidden="true">🌱</span> <span data-i18n="plantIt">Publish my journey</span></button>
         <p class="privacy-note" data-i18n="privacyNote">🔒 Your exact location stays private. Others only see the area name. Photo metadata (like GPS) is removed.</p>
       </form>
     </section>
@@ -191,11 +227,14 @@
           <button type="button" class="btn btn-ghost" id="logoutBtn" data-i18n="signOut">Sign out</button>
         </div>
         <div class="stats-row">
-          <div class="stat"><span class="stat-num" id="myPlants">0</span><span class="stat-label" data-i18n="myPlants">My plants</span></div>
+          <div class="stat"><span class="stat-num" id="myPlants">0</span><span class="stat-label" data-i18n="myPlants">My journeys</span></div>
           <div class="stat"><span class="stat-num" id="myZones">0</span><span class="stat-label" data-i18n="areasGreened">Areas greened</span></div>
           <div class="stat"><span class="stat-num" id="myBadge">🌱</span><span class="stat-label" id="myBadgeLabel">Seedling</span></div>
         </div>
-        <h2 class="section-title" data-i18n="myGarden">My garden</h2>
+        <div class="section-row">
+          <h2 class="section-title" data-i18n="myJourneys">My planting journeys</h2>
+          <button type="button" class="btn btn-ghost btn-sm" id="notifBtn" hidden data-i18n="enableNotif">Turn on reminders</button>
+        </div>
         <div class="feed" id="myFeed"></div>
       </div>
     </section>
@@ -206,7 +245,7 @@
     <button type="button" class="tab" id="tab-feed" data-view="feed"><span class="tab-ico" aria-hidden="true">🌿</span><span data-i18n="tabFeed">Feed</span></button>
     <button type="button" class="tab tab-plant" id="tab-log" data-view="log"><span class="tab-ico plant-fab" aria-hidden="true">＋</span><span data-i18n="tabLog">Plant</span></button>
     <button type="button" class="tab" id="tab-learn" data-view="learn"><span class="tab-ico" aria-hidden="true">📖</span><span data-i18n="tabLearn">Learn</span></button>
-    <button type="button" class="tab" id="tab-me" data-view="me"><span class="tab-ico" aria-hidden="true">👤</span><span data-i18n="tabMe">Me</span></button>
+    <button type="button" class="tab" id="tab-me" data-view="me"><span class="tab-ico" aria-hidden="true">👤<i class="tab-badge" id="meBadge" hidden></i></span><span data-i18n="tabMe">Me</span></button>
   </nav>
 
   <!-- Zone details sheet -->
@@ -224,6 +263,21 @@
     <div class="feed feed-compact" id="zoneSheetFeed"></div>
     <button type="button" class="btn btn-primary btn-block" id="zoneSheetPlant"><span aria-hidden="true">🌱</span> <span data-i18n="plantHere">Plant in this area</span></button>
   </section>
+
+  <!-- Journey detail -->
+  <section class="sheet" id="journeySheet" role="dialog" aria-modal="true" aria-labelledby="journeyTitle" hidden>
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div>
+        <h2 id="journeyTitle"></h2>
+        <p class="muted" id="journeySub"></p>
+      </div>
+      <button type="button" class="icon-btn" id="journeyClose" aria-label="Close">✕</button>
+    </div>
+    <div class="journey-care" id="journeyCare"></div>
+    <ol class="timeline" id="journeyTimeline"></ol>
+  </section>
+  <input type="file" id="growthInput" accept="image/*" capture="environment" class="visually-hidden" tabindex="-1" aria-hidden="true">
 
   <!-- Celebration -->
   <div class="celebrate" id="celebrate" role="status" hidden>

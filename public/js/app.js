@@ -1,6 +1,7 @@
 import { api, ApiError, useApi } from './api.js';
 import { t, applyI18n, setLang, getLang } from './i18n.js';
 import { KuwaitMap, levelFor, zoneAt } from './map.js';
+import { recommendPlants, seasonFor } from './recommend.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -29,6 +30,8 @@ const state = {
   feedCursor: null,
   feedZone: '',
   log: { file: null, blob: null, species: null, lat: null, lng: null, zone: null },
+  wizard: { space: null, place: null, sun: null },
+  myPlants: [],
   sheetZone: null,
 };
 let mainMap = null;
@@ -56,6 +59,12 @@ function timeAgo(ts) {
   if (s < 86400 * 30) return t('dayAgo', { n: Math.floor(s / 86400) });
   return new Date(ts).toLocaleDateString(getLang() === 'ar' ? 'ar-KW' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+// Localised names: area / governorate / plant type follow the chosen language.
+const isAr = () => getLang() === 'ar';
+const zoneName = (zOrId) => { const z = typeof zOrId === 'string' ? state.zoneById.get(zOrId) : (zOrId && state.zoneById.get(zOrId.id)) || zOrId; return z ? (isAr() && z.nameAr ? z.nameAr : z.name) : ''; };
+const govName = (z) => (isAr() && z.governorateAr ? z.governorateAr : z.governorate);
+const speciesLabel = (p) => { const s = state.species.find((x) => x.id === p.species); return s ? (isAr() ? s.nameAr : s.name) : p.speciesName; };
 
 const fmt = (n) => Number(n || 0).toLocaleString(getLang() === 'ar' ? 'ar-KW' : 'en-US');
 
@@ -102,11 +111,12 @@ async function refreshStats() {
   $('#statGrowers').textContent = fmt(s.totalGrowers);
   $('#statWeek').textContent = fmt(s.plantsThisWeek);
   mainMap?.setCounts(s.zoneCounts);
+  mainMap?.setPoints(s.points || []);
   pickMap?.setCounts(s.zoneCounts);
 
   const tz = $('#topZones');
   tz.replaceChildren(...(s.topZones.length ? s.topZones.map((z) => h('li', {},
-    h('button', { type: 'button', class: 'rank-btn', text: z.name, onclick: () => openZone(z.id) }),
+    h('button', { type: 'button', class: 'rank-btn', text: zoneName(z.id), onclick: () => openZone(z.id) }),
     h('span', { class: 'num', text: fmt(z.plants) }),
   )) : [h('p', { class: 'rank-empty', text: t('zoneNoPlants') })]));
 
@@ -137,13 +147,14 @@ function plantCard(p, { onRemoved } = {}) {
       },
     }));
   }
-  const title = p.nickname ? `${p.nickname}` : p.speciesName;
+  const spName = speciesLabel(p);
+  const title = p.nickname ? `${p.nickname}` : spName;
   const card = h('article', { class: 'plant-card' },
-    h('img', { class: 'plant-photo', src: p.photoUrl, alt: `${p.speciesName}${p.nickname ? ` — ${p.nickname}` : ''}`, loading: 'lazy', decoding: 'async', width: 400, height: 300 }),
+    h('img', { class: 'plant-photo', src: p.photoUrl, alt: `${spName}${p.nickname ? ` — ${p.nickname}` : ''}`, loading: 'lazy', decoding: 'async', width: 400, height: 300 }),
     h('div', { class: 'plant-body' },
       h('div', { class: 'plant-title' }, h('span', { 'aria-hidden': 'true', text: p.emoji }), h('span', { text: title })),
-      p.nickname ? h('div', { class: 'plant-meta', text: p.speciesName }) : null,
-      h('div', {}, h('span', { class: 'chip', text: `📍 ${p.zone?.name ?? ''}` })),
+      p.nickname ? h('div', { class: 'plant-meta', text: spName }) : null,
+      h('div', {}, h('span', { class: 'chip', text: `📍 ${p.zone ? zoneName(p.zone) : ''}` })),
       h('div', { class: 'plant-meta', text: `${t('by', { name: p.grower.displayName })} · ${timeAgo(p.createdAt)}` }),
       p.note ? h('p', { class: 'plant-note', text: p.note }) : null,
       actions.childElementCount ? actions : null,
@@ -176,12 +187,14 @@ async function loadFeed(reset = false) {
 function fillAreaSelect(select, placeholder) {
   const byGov = new Map();
   for (const z of state.zones) {
-    if (!byGov.has(z.governorate)) byGov.set(z.governorate, []);
-    byGov.get(z.governorate).push(z);
+    if (!byGov.has(govName(z))) byGov.set(govName(z), []);
+    byGov.get(govName(z)).push(z);
   }
   select.replaceChildren(h('option', { value: '', text: placeholder }));
-  for (const [gov, zones] of [...byGov].sort((a, b) => a[0].localeCompare(b[0]))) {
-    select.append(h('optgroup', { label: gov }, zones.map((z) => h('option', { value: z.id, text: z.name }))));
+  const collator = new Intl.Collator(isAr() ? 'ar' : 'en');
+  for (const [gov, zones] of [...byGov].sort((a, b) => collator.compare(a[0], b[0]))) {
+    zones.sort((a, b) => collator.compare(zoneName(a), zoneName(b)));
+    select.append(h('optgroup', { label: gov }, zones.map((z) => h('option', { value: z.id, text: zoneName(z) }))));
   }
 }
 
@@ -192,8 +205,8 @@ async function openZone(id) {
   state.sheetZone = id;
   mainMap?.highlight(id);
   const count = state.stats?.zoneCounts[id] || 0;
-  $('#zoneSheetTitle').textContent = z.name;
-  $('#zoneSheetGov').textContent = z.governorate;
+  $('#zoneSheetTitle').textContent = zoneName(z);
+  $('#zoneSheetGov').textContent = govName(z);
   const badge = $('#zoneSheetBadge');
   badge.replaceChildren(
     h('i', { class: `sw lvl-${levelFor(count)}` }),
@@ -224,8 +237,9 @@ function prepareLog() {
   const signedIn = !!state.user;
   $('#logAuthNeeded').hidden = signedIn;
   $('#logForm').hidden = !signedIn;
+  $('#publishHead').hidden = false;
   if (signedIn && !pickMap) {
-    pickMap = new KuwaitMap($('#pickMap'), state.zones, { pickMode: true, onPick: (lng, lat) => setLocation(lng, lat), label: 'Location picker' });
+    pickMap = new KuwaitMap($('#pickMap'), state.zones, { pickMode: true, onPick: (lng, lat) => setLocation(lng, lat), label: 'Location picker', namer: zoneName });
     if (state.stats) pickMap.setCounts(state.stats.zoneCounts);
     if (state.log.lng != null) { pickMap.setPin(state.log.lng, state.log.lat); pickMap.focusZone(state.log.zone?.id); }
   }
@@ -248,7 +262,7 @@ function setLocation(lng, lat, { focus = false } = {}) {
   pickMap?.highlight(zone.id);
   if (focus) pickMap?.focusZone(zone.id);
   $('#areaSelect').value = zone.id;
-  setLocStatus(t('locFound', { zone: zone.name, gov: zone.governorate }), 'ok');
+  setLocStatus(t('locFound', { zone: zoneName(zone), gov: govName(zone) }), 'ok');
   return true;
 }
 
@@ -337,6 +351,7 @@ async function submitPlant(e) {
   fd.append('lat', String(L.lat));
   fd.append('lng', String(L.lng));
   fd.append('photo', L.blob, 'plant.jpg');
+  for (const k of ['space', 'place', 'sun']) if (state.wizard[k]) fd.append(k, state.wizard[k]);
 
   const btn = $('#logSubmit');
   btn.disabled = true;
@@ -349,6 +364,7 @@ async function submitPlant(e) {
     refreshMe();
     $('#feed').replaceChildren();
     const newCount = state.stats?.zoneCounts[plant.zone.id] || prevCount + 1;
+    state.justPublished = plant;
     celebrate(plant.zone, prevCount, newCount);
   } catch (err) {
     showLogError(errMsg(err));
@@ -375,6 +391,7 @@ function resetLogForm() {
 
 function celebrate(zone, prev, now) {
   let title, text;
+  zone = { ...zone, name: zoneName(zone) };
   if (prev === 0) { title = t('greenedTitle', { zone: zone.name }); text = t('greenedText', { zone: zone.name }); }
   else if (levelFor(now) > levelFor(prev)) { title = t('levelUpTitle', { zone: zone.name }); text = t('levelUpText', { zone: zone.name }); }
   else { title = t('plantedTitle'); text = t('plantedText', { zone: zone.name, n: fmt(now) }); }
@@ -386,7 +403,11 @@ function celebrate(zone, prev, now) {
     $('#celebrate').hidden = true;
     show('map');
     mainMap?.focusZone(zone.id, { maxZoom: 6 });
-    setTimeout(() => mainMap?.flash(zone.id), 200);
+    setTimeout(() => {
+      mainMap?.flash(zone.id);
+      const jp = state.justPublished;
+      if (jp) mainMap?.pulseNewest(Math.round(jp.lng * 100) / 100, Math.round(jp.lat * 100) / 100);
+    }, 200);
   };
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) confetti();
 }
@@ -415,11 +436,11 @@ function renderGuide() {
     ),
     h('div', { class: 'guide-tags' },
       s.native ? h('span', { class: 'tag native', text: t('native') }) : null,
-      h('span', { class: 'tag', text: s.type }),
+      h('span', { class: 'tag', text: ar ? s.typeAr : s.type }),
       h('span', { class: 'tag', text: `☀️ ${heat[s.heat]}` }),
     ),
-    h('p', { text: s.tip }),
-    h('p', { class: 'guide-water', text: `💧 ${s.water}` }),
+    h('p', { text: ar ? s.tipAr : s.tip }),
+    h('p', { class: 'guide-water', text: `💧 ${ar ? s.waterAr : s.water}` }),
   )));
 }
 
@@ -469,7 +490,7 @@ async function refreshMe() {
     const { user } = await api.me();
     state.user = user;
   } catch { /* keep current */ }
-  if (state.view === 'me') renderMe();
+  if (state.view === 'me') renderMe(); else loadReminders();
 }
 
 async function renderMe() {
@@ -488,8 +509,188 @@ async function renderMe() {
   const feed = $('#myFeed');
   try {
     const { plants } = await api.myPlants();
-    feed.replaceChildren(...(plants.length ? plants.map((p) => plantCard(p)) : [emptyState(t('noMyPlants'), t('startGarden'))]));
+    state.myPlants = plants;
+    feed.replaceChildren(...(plants.length ? plants.map((p) => journeyCard(p)) : [emptyState(t('noMyPlants'), t('startGarden'))]));
+    updateReminders();
   } catch (err) { toast(errMsg(err)); }
+  $('#notifBtn').hidden = !('Notification' in window) || Notification.permission === 'granted' || !state.myPlants.length;
+}
+
+// ---------- Feature 2: Start planting (recommendations) ----------
+function setChoice(group, value) {
+  state.wizard[group.dataset.name] = value;
+  group.querySelectorAll('.choice').forEach((b) => {
+    const on = b.dataset.value === value;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+function waterText(n) {
+  if (n === 1) return t('waterDaily');
+  if (isAr()) return n === 2 ? '💧 اسقِها كل يومين' : `💧 اسقِها كل ${fmt(n)} ${n <= 10 ? 'أيام' : 'يومًا'}`;
+  return t('waterEvery', { n: fmt(n) });
+}
+function updatesText(n) {
+  if (!isAr()) return t('updatesN', { n: fmt(n) });
+  if (n === 1) return '📷 صورة نمو واحدة';
+  if (n === 2) return '📷 صورتا نمو';
+  return `📷 ${fmt(n)} ${n <= 10 ? 'صور' : 'صورة'} نمو`;
+}
+
+function whenText(ts) {
+  const days = Math.ceil((ts - Date.now()) / 86_400_000);
+  if (days <= 0) return t('today');
+  if (days === 1) return t('tomorrow');
+  if (isAr()) {
+    // Arabic number agreement: يومين / ٣–١٠ أيام / ١١+ يومًا
+    if (days === 2) return 'بعد يومين';
+    return days <= 10 ? `بعد ${fmt(days)} أيام` : `بعد ${fmt(days)} يومًا`;
+  }
+  return t('inDays', { n: fmt(days) });
+}
+
+function renderRecommendations() {
+  const { space, place, sun } = state.wizard;
+  const err = $('#wizardError');
+  if (!space || !place || !sun) { err.textContent = t('pickAll'); err.hidden = false; return; }
+  err.hidden = true;
+  const month = new Date().getMonth() + 1;
+  const picks = recommendPlants(state.species, { space, place, sun }, month);
+  const ar = isAr();
+  $('#recoTitle').textContent = t('recoTitle', { season: t(`season_${seasonFor(month)}`) });
+  $('#recoList').replaceChildren(...picks.map(({ species: s, reasons }, i) => h('article', { class: 'reco-card' },
+    h('div', { class: 'reco-rank', text: fmt(i + 1) }),
+    h('div', { class: 'reco-top' },
+      h('span', { class: 'e', 'aria-hidden': 'true', text: s.emoji }),
+      h('div', {}, h('h4', { text: ar ? s.nameAr : s.name }), h('div', { class: 'muted small', text: ar ? s.typeAr : s.type })),
+    ),
+    h('ul', { class: 'reasons' }, reasons.slice(0, 4).map((r) => h('li', { text: t(r) }))),
+    h('p', { class: 'small', text: ar ? s.tipAr : s.tip }),
+    h('p', { class: 'small water', text: waterText(s.waterDays) }),
+    h('button', { type: 'button', class: 'btn btn-secondary btn-block', onclick: () => chooseRecommended(s.id) }, h('span', { 'aria-hidden': 'true', text: '🌱 ' }), t('chooseThis')),
+  )));
+  $('#recoResults').hidden = false;
+  $('#recoResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function chooseRecommended(speciesId) {
+  state.log.species = speciesId;
+  renderSpeciesGrid();
+  toast(t('chosen'));
+  const target = state.user ? $('#logForm') : $('#logAuthNeeded');
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ---------- Feature 2: Crop journey (growth photos + watering reminders) ----------
+function journeyCard(p) {
+  const days = Math.max(1, Math.floor((Date.now() - p.createdAt) / 86_400_000) + 1);
+  const due = p.nextWaterAt != null && p.nextWaterAt <= Date.now();
+  const card = h('article', { class: `plant-card journey${due ? ' due' : ''}` },
+    h('img', { class: 'plant-photo', src: p.coverUrl || p.photoUrl, alt: speciesLabel(p), loading: 'lazy', width: 400, height: 300 }),
+    h('div', { class: 'plant-body' },
+      h('div', { class: 'plant-title' }, h('span', { 'aria-hidden': 'true', text: p.emoji }), h('span', { text: p.nickname || speciesLabel(p) })),
+      h('div', { class: 'journey-meta' },
+        h('span', { class: 'chip', text: `📍 ${zoneName(p.zone)}` }),
+        h('span', { class: 'chip chip-soft', text: t('dayN', { n: fmt(days) }) }),
+        p.updatesCount ? h('span', { class: 'chip chip-soft', text: updatesText(p.updatesCount) }) : null,
+      ),
+      h('div', { class: `water-line${due ? ' due' : ''}`, text: due ? t('waterDue') : t('waterIn', { when: whenText(p.nextWaterAt) }) }),
+      h('div', { class: 'journey-actions' },
+        h('button', { type: 'button', class: `btn ${due ? 'btn-primary' : 'btn-secondary'} btn-sm`, onclick: () => waterJourney(p.id) }, '💧 ', t('wateredBtn')),
+        h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => pickGrowthPhoto(p.id) }, '📷 ', t('addGrowth')),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', onclick: () => openJourney(p.id) }, t('viewJourney')),
+      ),
+      h('div', { class: 'journey-foot' },
+        h('button', { type: 'button', class: 'link-btn danger', text: t('remove'), onclick: async () => {
+          if (!confirm(t('confirmRemove'))) return;
+          try { await api.deletePlant(p.id); toast(t('removed')); refreshStats(); refreshMe(); renderMe(); } catch (e) { toast(errMsg(e)); }
+        } }),
+      ),
+    ),
+  );
+  return card;
+}
+
+async function waterJourney(id) {
+  try {
+    const { plant } = await api.waterPlant(id);
+    toast(t('wateredToast', { when: whenText(plant.nextWaterAt) }));
+    await renderMe();
+  } catch (err) { toast(errMsg(err)); }
+}
+
+let growthTarget = null;
+function pickGrowthPhoto(id) {
+  growthTarget = id;
+  $('#growthInput').value = '';
+  $('#growthInput').click();
+}
+async function onGrowthPhoto(e) {
+  const file = e.target.files?.[0];
+  if (!file || growthTarget == null) return;
+  try {
+    const blob = await compressImage(file);
+    const fd = new FormData();
+    fd.append('photo', blob, 'growth.jpg');
+    await api.addUpdate(growthTarget, fd);
+    toast(t('growthAdded'));
+    await renderMe();
+    if (!$('#journeySheet').hidden) openJourney(growthTarget);
+  } catch (err) { toast(errMsg(err)); }
+}
+
+async function openJourney(id) {
+  try {
+    const { plant: p, updates } = await api.plant(id);
+    const s = state.species.find((x) => x.id === p.species);
+    const ar = isAr();
+    $('#journeyTitle').textContent = `${p.emoji} ${p.nickname || speciesLabel(p)}`;
+    $('#journeySub').textContent = `${zoneName(p.zone)} · ${speciesLabel(p)}`;
+    $('#journeyCare').replaceChildren(
+      p.nextWaterAt != null ? h('div', { class: `water-line${p.nextWaterAt <= Date.now() ? ' due' : ''}`, text: p.nextWaterAt <= Date.now() ? t('waterDue') : t('waterIn', { when: whenText(p.nextWaterAt) }) }) : null,
+      s ? h('p', {}, h('strong', { text: `${t('careTip')}: ` }), ar ? s.tipAr : s.tip) : null,
+      p.mine ? h('div', { class: 'journey-actions' },
+        h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => waterJourney(p.id).then(() => openJourney(p.id)) }, '💧 ', t('wateredBtn')),
+        h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => pickGrowthPhoto(p.id) }, '📷 ', t('addGrowth')),
+      ) : null,
+    );
+    const entries = [{ photoUrl: p.photoUrl, note: p.note, createdAt: p.createdAt, first: true }, ...updates];
+    $('#journeyTimeline').replaceChildren(...entries.map((u) => h('li', {},
+      h('div', { class: 'tl-head' },
+        h('strong', { text: u.first ? t('journeyStart') : t('growthUpdate') }),
+        h('span', { class: 'muted small', text: `${t('dayN', { n: fmt(Math.floor((u.createdAt - p.createdAt) / 86_400_000) + 1) })} · ${timeAgo(u.createdAt)}` }),
+      ),
+      h('img', { src: u.photoUrl, alt: '', loading: 'lazy', width: 400, height: 300 }),
+      u.note ? h('p', { text: u.note }) : null,
+    )));
+    $('#sheetBackdrop').hidden = false;
+    $('#journeySheet').hidden = false;
+    $('#journeyClose').focus();
+  } catch (err) { toast(errMsg(err)); }
+}
+function closeJourney() {
+  $('#journeySheet').hidden = true;
+  if ($('#zoneSheet').hidden) $('#sheetBackdrop').hidden = true;
+}
+
+// Reminders: in-app banner + badge, and a browser notification when allowed.
+let notifiedFor = '';
+function updateReminders() {
+  const due = state.myPlants.filter((p) => p.nextWaterAt != null && p.nextWaterAt <= Date.now());
+  const names = due.map((p) => p.nickname || speciesLabel(p));
+  $('#reminderBanner').hidden = !due.length;
+  $('#meBadge').hidden = !due.length;
+  if (due.length) $('#reminderText').textContent = t('reminderBanner', { names: names.join('، ') });
+  const key = due.map((p) => p.id).join(',');
+  if (due.length && key !== notifiedFor && 'Notification' in window && Notification.permission === 'granted') {
+    notifiedFor = key;
+    try { new Notification(t('notifTitle'), { body: names.join('، '), icon: 'icons/icon-192.png', tag: 'arfaj-water' }); } catch { /* some browsers need a service worker */ }
+  }
+}
+async function loadReminders() {
+  if (!state.user) { state.myPlants = []; updateReminders(); return; }
+  try { state.myPlants = (await api.myPlants()).plants; updateReminders(); } catch { /* offline */ }
 }
 
 // ---------- Boot ----------
@@ -504,6 +705,12 @@ async function boot() {
     setLang(getLang() === 'ar' ? 'en' : 'ar');
     $('#langToggle').textContent = getLang() === 'ar' ? 'English' : 'عربي';
     renderSpeciesGrid(); renderGuide(); refreshStats(); setAuthMode(authMode);
+    mainMap?.setNamer(zoneName); pickMap?.setNamer(zoneName);
+    if (state.attribution) $('#attribution').textContent = isAr() && state.attribution.attributionAr ? state.attribution.attributionAr : state.attribution.attribution;
+    if (state.log.zone) setLocation(state.log.lng, state.log.lat);
+    if (state.sheetZone) openZone(state.sheetZone);
+    if (!$('#recoResults').hidden) renderRecommendations();
+    updateReminders();
     fillAreaSelect($('#feedZone'), t('allAreas')); $('#feedZone').value = state.feedZone;
     fillAreaSelect($('#areaSelect'), t('chooseArea')); if (state.log.zone) $('#areaSelect').value = state.log.zone.id;
     if (state.view === 'feed') loadFeed(true); else $('#feed').replaceChildren();
@@ -514,8 +721,11 @@ async function boot() {
   $('#zoomReset').addEventListener('click', () => mainMap?.reset());
   $('#zoomCity').addEventListener('click', () => mainMap?.focusBounds([47.85, 29.05, 48.2, 29.42]));
   $('#sheetClose').addEventListener('click', closeZone);
-  $('#sheetBackdrop').addEventListener('click', closeZone);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#zoneSheet').hidden) closeZone(); });
+  $('#sheetBackdrop').addEventListener('click', () => { closeJourney(); closeZone(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('#journeySheet').hidden) closeJourney(); else if (!$('#zoneSheet').hidden) closeZone();
+  });
   $('#zoneSheetPlant').addEventListener('click', () => {
     const z = state.zoneById.get(state.sheetZone);
     closeZone();
@@ -534,6 +744,19 @@ async function boot() {
   $('#authTabLogin').addEventListener('click', () => setAuthMode('login'));
   $('#authTabRegister').addEventListener('click', () => setAuthMode('register'));
   $('#authForm').addEventListener('submit', submitAuth);
+  document.querySelectorAll('.choice-group').forEach((g) => g.querySelectorAll('.choice').forEach((b) => {
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => setChoice(g, b.dataset.value));
+  }));
+  $('#recommendBtn').addEventListener('click', renderRecommendations);
+  $('#growthInput').addEventListener('change', onGrowthPhoto);
+  $('#journeyClose').addEventListener('click', closeJourney);
+  $('#reminderGo').addEventListener('click', () => show('me'));
+  $('#notifBtn').addEventListener('click', async () => {
+    const perm = await Notification.requestPermission().catch(() => 'denied');
+    if (perm === 'granted') { toast(t('notifOn')); $('#notifBtn').hidden = true; notifiedFor = ''; updateReminders(); }
+  });
+  setInterval(() => { if (document.visibilityState === 'visible') updateReminders(); }, 60_000);
   document.querySelectorAll('.guest-btn').forEach((b) => b.addEventListener('click', async () => {
     try {
       const { user } = await api.guest();
@@ -546,6 +769,8 @@ async function boot() {
   $('#logoutBtn').addEventListener('click', async () => {
     try { await api.logout(); } catch { /* ignore */ }
     state.user = null;
+    state.myPlants = [];
+    updateReminders();
     toast(t('signedOut'));
     $('#feed').replaceChildren();
     renderMe();
@@ -568,18 +793,20 @@ async function boot() {
   if (zonesRes.status !== 'fulfilled') { toast(errMsg(zonesRes.reason)); return; }
   state.zones = zonesRes.value.zones;
   state.zoneById = new Map(state.zones.map((z) => [z.id, z]));
-  $('#attribution').textContent = zonesRes.value.attribution;
+  state.attribution = zonesRes.value;
+  $('#attribution').textContent = isAr() && zonesRes.value.attributionAr ? zonesRes.value.attributionAr : zonesRes.value.attribution;
   if (speciesRes.status === 'fulfilled') state.species = speciesRes.value.species;
   if (meRes.status === 'fulfilled') state.user = meRes.value.user;
 
-  mainMap = new KuwaitMap($('#mainMap'), state.zones, { onZoneClick: openZone, label: t('appName') });
-  mainMap.tooltipText = (z) => `${z.name} · ${t('plantsCount', { n: fmt(state.stats?.zoneCounts[z.id] || 0) })}`;
+  mainMap = new KuwaitMap($('#mainMap'), state.zones, { onZoneClick: openZone, label: t('appName'), namer: zoneName });
+  mainMap.tooltipText = (z) => `${zoneName(z)} · ${t('plantsCount', { n: fmt(state.stats?.zoneCounts[z.id] || 0) })}`;
   fillAreaSelect($('#feedZone'), t('allAreas'));
   fillAreaSelect($('#areaSelect'), t('chooseArea'));
   renderSpeciesGrid();
   renderGuide();
   await refreshStats();
 
+  loadReminders();
   const initial = location.hash.slice(1);
   show(['map', 'feed', 'log', 'learn', 'me'].includes(initial) ? initial : 'map');
 

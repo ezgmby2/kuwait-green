@@ -49,7 +49,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
-          name: kuwait-green-${{ matrix.name }}
+          name: arfaj-${{ matrix.name }}
           path: |
             dist/*.exe
             dist/*.dmg
@@ -75,17 +75,17 @@ jobs:
           files: dist/*
           tag_name: ${{ steps.tag.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: Kuwait Green ${{ steps.tag.outputs.tag }}
+          name: Arfaj ${{ steps.tag.outputs.tag }}
           make_latest: true
           body: |
-            ## Download Kuwait Green 🪴
+            ## Download Arfaj 🪴
 
             | Your computer | Download |
             | --- | --- |
-            | **Windows** | `Kuwait-Green-…-Windows-Setup.exe` (installer) or `…-Windows-Portable.exe` (no install) |
-            | **Mac with Apple chip (M1–M4)** | `Kuwait-Green-…-macOS-arm64.dmg` |
-            | **Mac with Intel chip** | `Kuwait-Green-…-macOS-x64.dmg` |
-            | **Linux** | `Kuwait-Green-…-Linux.AppImage` or `.deb` |
+            | **Windows** | `Arfaj-…-Windows-Setup.exe` (installer) or `…-Windows-Portable.exe` (no install) |
+            | **Mac with Apple chip (M1–M4)** | `Arfaj-…-macOS-arm64.dmg` |
+            | **Mac with Intel chip** | `Arfaj-…-macOS-x64.dmg` |
+            | **Linux** | `Arfaj-…-Linux.AppImage` or `.deb` |
 
             **First launch:** the app isn't code-signed yet, so your computer will warn you once.
             - **Windows:** click **More info → Run anyway**.

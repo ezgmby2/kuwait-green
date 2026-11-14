@@ -1,8 +1,8 @@
 {
   "name": "kuwait-green",
-  "productName": "Kuwait Green",
+  "productName": "Arfaj",
   "version": "1.0.0",
-  "description": "Kuwait Green — log the plants you grow and watch Kuwait's map turn from brown to green.",
+  "description": "Arfaj (عرفج) — a community planting app: start a planting journey and watch Kuwait's map turn from brown to green.",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -32,13 +32,13 @@
     "electron-builder": "^26.18.1"
   },
   "author": {
-    "name": "Kuwait Green"
+    "name": "Arfaj"
   },
   "homepage": "https://github.com/ezgmby2/kuwait-green",
   "build": {
-    "appId": "com.kuwaitgreen.app",
-    "productName": "Kuwait Green",
-    "copyright": "Kuwait Green contributors",
+    "appId": "com.arfaj.app",
+    "productName": "Arfaj",
+    "copyright": "Arfaj contributors",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -51,7 +51,7 @@
       "build/icon.png",
       "package.json"
     ],
-    "artifactName": "Kuwait-Green-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Arfaj-${version}-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -69,7 +69,7 @@
       ]
     },
     "portable": {
-      "artifactName": "Kuwait-Green-${version}-Windows-Portable.${ext}"
+      "artifactName": "Arfaj-${version}-Windows-Portable.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -77,8 +77,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Kuwait Green",
-      "artifactName": "Kuwait-Green-${version}-Windows-Setup.${ext}"
+      "shortcutName": "Arfaj",
+      "artifactName": "Arfaj-${version}-Windows-Setup.${ext}"
     },
     "mac": {
       "target": [
@@ -93,7 +93,7 @@
       "category": "public.app-category.lifestyle"
     },
     "dmg": {
-      "artifactName": "Kuwait-Green-${version}-macOS-${arch}.${ext}"
+      "artifactName": "Arfaj-${version}-macOS-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -111,13 +111,13 @@
         }
       ],
       "category": "Education",
-      "maintainer": "Kuwait Green"
+      "maintainer": "Arfaj"
     },
     "appImage": {
-      "artifactName": "Kuwait-Green-${version}-Linux.${ext}"
+      "artifactName": "Arfaj-${version}-Linux.${ext}"
     },
     "deb": {
-      "artifactName": "Kuwait-Green-${version}-Linux.${ext}"
+      "artifactName": "Arfaj-${version}-Linux.${ext}"
     }
   }
 }

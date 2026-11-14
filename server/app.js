@@ -77,11 +77,17 @@ export function createApp(config) {
                             FROM plants p JOIN users u ON u.id = p.user_id WHERE p.hidden = 0
                             GROUP BY u.id ORDER BY plants DESC, MIN(p.created_at) ASC LIMIT 10`),
     myStats: db.prepare('SELECT COUNT(*) AS plants, COUNT(DISTINCT zone_id) AS zones FROM plants WHERE user_id = ?'),
+    waterPlant: db.prepare('UPDATE plants SET last_watered_at = ? WHERE id = ?'),
+    insertUpdate: db.prepare('INSERT INTO plant_updates (plant_id, photo, note, created_at) VALUES (?, ?, ?, ?)'),
+    updatesFor: db.prepare('SELECT id, photo, note, created_at FROM plant_updates WHERE plant_id = ? ORDER BY created_at ASC'),
+    updateCount: db.prepare('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM plant_updates WHERE plant_id = ?'),
+    points: db.prepare('SELECT lat, lng FROM plants WHERE hidden = 0 ORDER BY id DESC LIMIT 3000'),
     insertReport: db.prepare('INSERT OR IGNORE INTO reports (plant_id, user_id, reason, created_at) VALUES (?, ?, ?, ?)'),
     bumpReports: db.prepare('UPDATE plants SET report_count = report_count + 1, hidden = CASE WHEN report_count + 1 >= ? THEN 1 ELSE hidden END WHERE id = ?'),
   };
 
   const FEED_SELECT = `SELECT p.id, p.zone_id, p.species, p.nickname, p.note, p.lat, p.lng, p.photo, p.created_at, p.user_id,
+                              p.space, p.place, p.sun, p.last_watered_at,
                               u.username, u.display_name
                        FROM plants p JOIN users u ON u.id = p.user_id`;
 
@@ -104,8 +110,32 @@ export function createApp(config) {
       createdAt: row.created_at,
       grower: { username: row.username, displayName: row.display_name },
       mine: !!own,
+      ...journeyInfo(row, species, own),
     };
   }
+
+  // Crop-journey details: growth photos and watering reminders (the schedule is only shown to the owner).
+  function journeyInfo(row, species, own) {
+    const u = q.updateCount.get(row.id);
+    const info = { space: row.space, place: row.place, sun: row.sun, updatesCount: u.n, lastUpdateAt: u.last };
+    if (own) {
+      const waterDays = species ? species.waterDays : 3;
+      const lastWatered = row.last_watered_at || row.created_at;
+      Object.assign(info, { waterDays, lastWateredAt: row.last_watered_at, nextWaterAt: lastWatered + waterDays * DAY });
+    }
+    return info;
+  }
+  const ownedPlant = (req) => {
+    const id = parseInt(req.params.id, 10);
+    const plant = Number.isFinite(id) ? q.plantById.get(id) : null;
+    if (!plant) throw new HttpError(404, 'Plant not found');
+    if (plant.user_id !== req.user.id) throw new HttpError(403, 'Only the grower can update this journey');
+    return plant;
+  };
+  const SPACES = new Set(['small', 'medium', 'large']);
+  const PLACES = new Set(['balcony', 'roof', 'ground', 'indoor']);
+  const SUNS = new Set(['full', 'partial', 'shade']);
+  const pick = (value, allowed) => (allowed.has(value) ? value : null);
 
   // ---------- Session handling ----------
   function setSessionCookie(res, token, maxAgeMs) {
@@ -224,6 +254,8 @@ export function createApp(config) {
       greenZones,
       totalZones: zoneIndex.all.length,
       zoneCounts,
+      // One green dot per journey, rounded to ~1 km so nobody's home can be located.
+      points: q.points.all().map((r) => [coarse(r.lng), coarse(r.lat)]),
       topZones,
       topGrowers: q.topGrowers.all().map((g) => ({ username: g.username, displayName: g.display_name, plants: g.plants, zones: g.zones })),
     });
@@ -279,6 +311,8 @@ export function createApp(config) {
     let id;
     try {
       id = Number(q.insertPlant.run(req.user.id, zone.id, species, nickname, note, lat, lng, filename, Date.now()).lastInsertRowid);
+      db.prepare('UPDATE plants SET space = ?, place = ?, sun = ? WHERE id = ?')
+        .run(pick(req.body.space, SPACES), pick(req.body.place, PLACES), pick(req.body.sun, SUNS), id);
     } catch (err) {
       try { unlinkSync(filePath); } catch { /* ignore */ }
       throw err;
@@ -287,12 +321,40 @@ export function createApp(config) {
     res.status(201).json({ plant: serializePlant(row, req.user) });
   });
 
+  api.get('/plants/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const row = Number.isFinite(id) ? db.prepare(`${FEED_SELECT} WHERE p.id = ?`).get(id) : null;
+    if (!row || (row.hidden && row.user_id !== req.user?.id)) throw new HttpError(404, 'Plant not found');
+    const updates = q.updatesFor.all(id).map((u) => ({ id: u.id, photoUrl: `/uploads/${u.photo}`, note: u.note, createdAt: u.created_at }));
+    res.json({ plant: serializePlant(row, req.user), updates });
+  });
+
+  api.post('/plants/:id/water', requireAuth, (req, res) => {
+    const plant = ownedPlant(req);
+    q.waterPlant.run(Date.now(), plant.id);
+    res.json({ plant: serializePlant(db.prepare(`${FEED_SELECT} WHERE p.id = ?`).get(plant.id), req.user) });
+  });
+
+  api.post('/plants/:id/updates', requireAuth, uploadLimiter, upload.single('photo'), (req, res) => {
+    const plant = ownedPlant(req);
+    if (!req.file) throw bad('Please add a photo of your plant');
+    const note = cleanText(req.body.note, 280, { field: 'Note' });
+    let image;
+    try { image = sanitizeImage(req.file.buffer); } catch { throw bad('Photo must be a valid JPEG, PNG or WebP image'); }
+    const filename = `${randomBytes(16).toString('hex')}.${image.type}`;
+    writeFileSync(join(config.uploadDir, filename), image.data, { mode: 0o644, flag: 'wx' });
+    const uid = Number(q.insertUpdate.run(plant.id, filename, note, Date.now()).lastInsertRowid);
+    res.status(201).json({ update: { id: uid, photoUrl: `/uploads/${filename}`, note, createdAt: Date.now() } });
+  });
+
   api.delete('/plants/:id', requireAuth, (req, res) => {
     const id = parseInt(req.params.id, 10);
     const plant = Number.isFinite(id) ? q.plantById.get(id) : null;
     if (!plant) throw new HttpError(404, 'Plant not found');
     if (plant.user_id !== req.user.id && req.user.role !== 'admin') throw new HttpError(403, 'You can only remove your own plants');
+    const extraPhotos = q.updatesFor.all(id).map((u) => u.photo);
     q.deletePlant.run(id);
+    for (const f of extraPhotos) { try { unlinkSync(join(config.uploadDir, f)); } catch { /* already gone */ } }
     try { unlinkSync(join(config.uploadDir, plant.photo)); } catch { /* already gone */ }
     res.json({ ok: true });
   });

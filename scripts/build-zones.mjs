@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { pointInGeometry } from '../server/geo.js';
+import { AREAS_AR, GOVERNORATES_AR } from './zone-names-ar.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const adm1 = JSON.parse(readFileSync(join(root, 'data/raw/adm1.json'), 'utf8'));
@@ -158,6 +159,7 @@ const zones = adm2.features.map((f, i) => {
   return {
     id: `z${String(i + 1).padStart(3, '0')}-${slug}`,
     name,
+    nameAr: AREAS_AR[name] || name,
     governorate: GOV_OVERRIDES[name] || (gov ? GOV_NAMES[gov.properties.shapeName] : 'Kuwait'),
     centroid: label,
     bbox,
@@ -168,8 +170,12 @@ const zones = adm2.features.map((f, i) => {
 
 const out = {
   attribution: 'Area boundaries © OpenStreetMap contributors (ODbL), via geoBoundaries',
+  attributionAr: 'حدود المناطق © مساهمو OpenStreetMap ‏(ODbL)، عبر geoBoundaries',
   zones,
 };
+for (const z of zones) z.governorateAr = GOVERNORATES_AR[z.governorate] || z.governorate;
+const noAr = zones.filter((z) => !AREAS_AR[z.name]).map((z) => z.name);
+if (noAr.length) console.log('Zones with no Arabic name:', noAr.join(', '));
 writeFileSync(join(root, 'data/zones.json'), JSON.stringify(out));
 console.log(`Wrote ${zones.length} zones`);
 const missing = zones.filter((z) => z.governorate === 'Kuwait').map((z) => z.name);

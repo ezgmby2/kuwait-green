@@ -1,19 +1,40 @@
 {
-  "name": "Kuwait Green",
-  "short_name": "Kuwait Green",
-  "description": "Grow a plant, snap a photo, and help turn Kuwait's map from brown to green.",
+  "name": "عرفج | ARFAJ",
+  "short_name": "عرفج",
+  "description": "عرفج — تطبيق زراعي مجتمعي: ابدأ رحلتك الزراعية وشاهد خريطة الكويت تتحول من البني إلى الأخضر.",
   "start_url": "./#map",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f7f1e6",
   "theme_color": "#2f7d4a",
-  "lang": "en",
-  "categories": ["lifestyle", "education"],
+  "lang": "ar",
+  "categories": [
+    "lifestyle",
+    "education"
+  ],
   "icons": [
-    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "dir": "rtl"
 }

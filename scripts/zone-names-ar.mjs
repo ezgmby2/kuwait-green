@@ -1,0 +1,38 @@
+// Arabic names for Kuwait's areas and governorates, keyed by the English names used in zones.json.
+export const GOVERNORATES_AR = {
+  'Capital': 'العاصمة', 'Hawalli': 'حولي', 'Al Farwaniyah': 'الفروانية',
+  'Al Ahmadi': 'الأحمدي', 'Al Jahra': 'الجهراء', 'Mubarak Al-Kabeer': 'مبارك الكبير',
+};
+
+export const AREAS_AR = {
+  'Abdali': 'العبدلي', 'Abdali 2': 'العبدلي ٢', 'Abdulla Al-Salem': 'ضاحية عبدالله السالم', 'Abu Al-Hasaniya': 'أبو الحصانية',
+  'Abu Fataira': 'أبو فطيرة', 'Abu Halifa': 'أبو حليفة', 'Adailiya': 'العديلية', 'Ahmadi Desert': 'بر الأحمدي',
+  'Airport District': 'منطقة المطار', 'Al Adan': 'العدان', 'Al Ahmadi': 'الأحمدي', 'Al Fantas': 'الفنطاس', 'Al Qurain': 'القرين',
+  'Al Zour': 'الزور', 'Ali Sabah Al-Salem (Umm Al-Hayman)': 'علي صباح السالم (أم الهيمان)', 'Amghara': 'أمغرة', 'Andalus': 'الأندلس',
+  'Ardhiya': 'العارضية', 'Ardhiya Herafiya': 'العارضية الحرفية', 'Ardhiya Hkomeya': 'العارضية الحكومية', 'Ardhiya Makhzen': 'العارضية المخازن',
+  'Bayan': 'بيان', 'Bneid Al-Gar': 'بنيد القار', 'Daiya': 'الدعية', 'Dasma': 'الدسمة', 'Dasman': 'دسمان', 'Dhaher': 'الظهر',
+  'Dhajeej': 'الضجيج', 'Doha': 'الدوحة', 'Egaila': 'العقيلة', 'Fahad Al-Ahmad': 'فهد الأحمد', 'Fahaheel': 'الفحيحيل', 'Faiha': 'الفيحاء',
+  'Failaka Island': 'جزيرة فيلكا', 'Farwaniya': 'الفروانية', 'Ferdous': 'الفردوس', 'Fnaitees': 'الفنيطيس', 'Granada': 'غرناطة',
+  'Hadiya': 'هدية', 'Hawalli': 'حولي', 'Hitteen': 'حطين', 'Ishbiliya': 'إشبيلية', 'Jaber Al-Ali': 'جابر العلي', 'Jabriya': 'الجابرية',
+  'Jahra': 'الجهراء', 'Jahra Desert': 'بر الجهراء', 'Jahra Industrial': 'الجهراء الصناعية', 'Jleeb Al-Shuyoukh': 'جليب الشيوخ',
+  'Kabad': 'كبد', 'Khairan (Pearl City)': 'الخيران (مدينة صباح الأحمد البحرية)', 'Khaitan': 'خيطان', 'Khaldiya': 'الخالدية',
+  'Kifan': 'كيفان', 'Magwa': 'المقوع', 'Mahboula': 'المهبولة', 'Mangaf': 'المنقف', 'Mansouriya': 'المنصورية', 'Messila': 'المسيلة',
+  'Mina Abdulla': 'ميناء عبدالله', 'Mina Doha': 'ميناء الدوحة', 'Mina Doha 2': 'ميناء الدوحة ٢', 'Mirqab': 'المرقاب', 'Mishref': 'مشرف',
+  'Mubarak Al Kabeer': 'مبارك الكبير', 'Mubarak Al-Abdullah (West Mishref)': 'مبارك العبدالله (غرب مشرف)', 'Mubarakiya Camps': 'معسكرات المباركية',
+  'Naeem': 'النعيم', 'Nahda (East Sulaibikhat)': 'النهضة (شرق الصليبخات)', 'Nasseem': 'النسيم', 'New Khairan': 'الخيران الجديدة',
+  'New Wafra': 'الوفرة الجديدة', 'North Shuaiba': 'الشعيبة الشمالية', 'Nuwaiseeb': 'النويصيب', 'Nuzha': 'النزهة', 'Omariya': 'العمرية',
+  'Oyoun': 'العيون', 'Qadsiya': 'القادسية', 'Qasr': 'القصر', 'Qibla': 'القبلة', 'Qortuba': 'قرطبة', 'Rabiya': 'الرابية', 'Rai': 'الري',
+  'Rawda': 'الروضة', 'Reggae': 'الرقعي', 'Rehab': 'الرحاب', 'Riqqa': 'الرقة', 'Rumaithiya': 'الرميثية', 'Saad Al-Abdullah': 'سعد العبدالله',
+  'Sabah Al Nasser': 'صباح الناصر', 'Sabah Al-Ahmad': 'صباح الأحمد', 'Sabah Al-Salem': 'صباح السالم', 'Sabah Al-Salem Hejen': 'هجن صباح السالم',
+  'Sabahiya': 'الصباحية', 'Salam': 'السلام', 'Salmiya': 'السالمية', 'Salmy': 'السالمي', 'Salwa': 'سلوى', 'Shaab': 'الشعب',
+  'Shamiya': 'الشامية', 'Sharq': 'شرق', 'Shuhada': 'الشهداء', 'Shuwaikh': 'الشويخ', 'Shuwaikh Commercial': 'الشويخ التجارية',
+  'Shuwaikh Educational': 'الشويخ التعليمية', 'Shuwaikh Health': 'الشويخ الصحية', 'Shuwaikh Industrial 1': 'الشويخ الصناعية ١',
+  'Shuwaikh Industrial 2': 'الشويخ الصناعية ٢', 'Shuwaikh Industrial 3': 'الشويخ الصناعية ٣', 'Shuwaikh Port': 'ميناء الشويخ',
+  'Siddiq': 'الصديق', 'Sikrab': 'السكراب', 'South Coast Strip': 'الشريط الساحلي الجنوبي', 'South Doha': 'جنوب الدوحة',
+  'South East Jahra': 'جنوب شرق الجهراء', 'South Sabahiya': 'جنوب الصباحية', 'South Shuaiba': 'الشعيبة الجنوبية', 'South Wista': 'جنوب الوسطى',
+  'Subhan': 'صبحان', 'Sulaibikhat': 'الصليبخات', 'Sulaibikhat Cemetery': 'مقبرة الصليبخات', 'Sulaibiya': 'الصليبية',
+  'Sulaibiya Agricultural 1': 'الصليبية الزراعية ١', 'Sulaibiya Agriculture 2': 'الصليبية الزراعية ٢', 'Sulaibiya Industrial 1': 'الصليبية الصناعية ١',
+  'Sulaibiya Industrial 2': 'الصليبية الصناعية ٢', 'Surra': 'السرة', 'Taima': 'تيماء', 'The Green Belt': 'الحزام الأخضر',
+  'The Sea Front': 'الواجهة البحرية', 'Ungaifa': 'أنجفة', 'Wafra': 'الوفرة', 'Waha': 'الواحة', 'West Jahra': 'غرب الجهراء',
+  'West Jleeb': 'غرب الجليب', 'Wista': 'الوسطى', 'Yarmouk': 'اليرموك', 'Zahra': 'الزهراء',
+};

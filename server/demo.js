@@ -58,14 +58,14 @@ function randomPointIn(zone, rnd) {
 }
 
 const growers = [
-  ['sara_k', 'Sara'], ['abdullah88', 'Abdullah'], ['green_fahad', 'Fahad'], ['noura_plants', 'Noura'],
-  ['yousef_q8', 'Yousef'], ['maryam_garden', 'Maryam'], ['hamad_trees', 'Hamad'], ['lulwa_sidr', 'Lulwa'],
+  ['sara_k', 'سارة'], ['abdullah88', 'عبدالله'], ['green_fahad', 'فهد'], ['noura_plants', 'نورة'],
+  ['yousef_q8', 'يوسف'], ['maryam_garden', 'مريم'], ['hamad_trees', 'حمد'], ['lulwa_sidr', 'لولوة'],
 ];
 const hotspots = ['Salmiya', 'Jabriya', 'Rumaithiya', 'Kifan', 'Mishref', 'Bayan', 'Surra', 'Yarmouk', 'Fahaheel', 'Mangaf',
   'Jahra', 'Qortuba', 'Khaldiya', 'Shamiya', 'Dasma', 'Mubarak Al Kabeer', 'Sabah Al-Salem', 'Al Adan', 'Egaila', 'Salwa',
   'Hawalli', 'Abdulla Al-Salem', 'Wafra', 'Failaka Island', 'Sharq', 'Farwaniya', 'Rabiya', 'Andalus'];
-const notes = ['Planted with my kids this weekend 🌱', 'Watering every evening after sunset', 'Gift from my grandmother\'s garden',
-  'Our neighbourhood is getting greener!', 'First try — wish me luck', null, null, 'Shade for the cats 🐈', 'For a cooler balcony'];
+const notes = ['زرعتها مع أطفالي هذا الأسبوع 🌱', 'أسقيها كل مساء بعد الغروب', 'هدية من حديقة جدتي',
+  'منطقتنا صارت أكثر خضرة!', 'أول تجربة لي — تمنّوا لي التوفيق', null, null, 'ظل للقطط 🐈', 'لشرفة أبرد'];
 
 /** Adds demo growers and 90 plants. Returns { growers, plants, areas }. */
 export async function seedDemo(db, { uploadDir, zones }) {

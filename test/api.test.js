@@ -167,3 +167,31 @@ test('upload path traversal is blocked', async () => {
   const r = await fetch(`${base}/uploads/..%2f..%2fpackage.json`);
   assert.equal(r.status, 404);
 });
+
+test('crop journey: owner adds growth photos and logs watering; others cannot', async () => {
+  const owner = await register('journey_owner');
+  const created = await call('POST', '/api/plants', { cookie: owner, form: plantForm({ species: 'mint', space: 'small', place: 'balcony', sun: 'partial' }) });
+  assert.equal(created.status, 201);
+  const p = created.data.plant;
+  assert.equal(p.place, 'balcony');
+  assert.equal(p.waterDays, 1);
+  assert.ok(p.nextWaterAt > p.createdAt);
+
+  const other = await register('journey_other');
+  const fd = () => { const f = new FormData(); f.append('note', 'Week 2 — new leaves!'); f.append('photo', new Blob([jpegWithExif()], { type: 'image/jpeg' }), 'u.jpg'); return f; };
+  assert.equal((await call('POST', `/api/plants/${p.id}/updates`, { cookie: other, form: fd() })).status, 403);
+  assert.equal((await call('POST', `/api/plants/${p.id}/water`, { cookie: other })).status, 403);
+
+  const up = await call('POST', `/api/plants/${p.id}/updates`, { cookie: owner, form: fd() });
+  assert.equal(up.status, 201);
+  const watered = await call('POST', `/api/plants/${p.id}/water`, { cookie: owner });
+  assert.ok(watered.data.plant.lastWateredAt >= p.createdAt);
+
+  const detail = await call('GET', `/api/plants/${p.id}`);
+  assert.equal(detail.data.updates.length, 1);
+  assert.equal(detail.data.updates[0].note, 'Week 2 — new leaves!');
+  assert.equal(detail.data.plant.nextWaterAt, undefined, 'reminder schedule is private to the owner');
+
+  const stats = await call('GET', '/api/stats');
+  assert.ok(stats.data.points.some(([lng, lat]) => lng === 48.08 && lat === 29.34), 'journey appears as a coarse map dot');
+});

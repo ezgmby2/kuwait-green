@@ -1,7 +1,7 @@
-// Kuwait Green desktop app.
-// Starts the Kuwait Green server inside the app (listening on this computer only) and shows it in a window.
+// Arfaj (عرفج) desktop app.
+// Starts the Arfaj server inside the app (listening on this computer only) and shows it in a window.
 // Your plants, photos and account are stored in your user data folder, e.g.
-//   Windows: %APPDATA%\Kuwait Green   macOS: ~/Library/Application Support/Kuwait Green   Linux: ~/.config/Kuwait Green
+//   Windows: %APPDATA%\Arfaj   macOS: ~/Library/Application Support/Arfaj   Linux: ~/.config/Arfaj
 const { app, BrowserWindow, Menu, shell, dialog, session } = require('electron');
 const path = require('node:path');
 const net = require('node:net');
@@ -69,7 +69,7 @@ function createWindow() {
     height: 860,
     minWidth: 380,
     minHeight: 600,
-    title: 'Kuwait Green',
+    title: 'عرفج | ARFAJ',
     backgroundColor: '#f7f1e6',
     icon: path.join(ROOT, 'build', 'icon.png'),
     show: false,
@@ -114,11 +114,11 @@ function setupPermissions() {
 async function loadDemoData() {
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: 'question',
-    buttons: ['Add demo plants', 'Cancel'],
+    buttons: ['Add demo journeys', 'Cancel'],
     defaultId: 0,
     cancelId: 1,
-    title: 'Load demo plants',
-    message: 'Add 90 demo plants from 8 demo growers?',
+    title: 'Load demo journeys',
+    message: 'Add 90 demo planting journeys from 8 demo growers?',
     detail: 'This shows how the map turns green. Demo growers sign in with the password "plantmore123". Your own plants are kept.',
   });
   if (response !== 0) return;
@@ -153,9 +153,9 @@ function buildMenu() {
     {
       label: 'Help',
       submenu: [
-        { label: 'Load Demo Plants…', click: loadDemoData },
+        { label: 'Load Demo Journeys…', click: loadDemoData },
         { type: 'separator' },
-        { label: 'Kuwait Green on GitHub', click: () => shell.openExternal(REPO_URL) },
+        { label: 'Arfaj on GitHub', click: () => shell.openExternal(REPO_URL) },
       ],
     },
   ];
@@ -166,7 +166,7 @@ app.whenReady().then(async () => {
   try {
     await startServer();
   } catch (err) {
-    dialog.showErrorBox('Kuwait Green could not start', String(err.stack || err));
+    dialog.showErrorBox('Arfaj could not start', String(err.stack || err));
     app.quit();
     return;
   }

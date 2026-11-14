@@ -42,6 +42,16 @@ CREATE INDEX IF NOT EXISTS idx_plants_zone ON plants(zone_id, hidden);
 CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id);
 CREATE INDEX IF NOT EXISTS idx_plants_created ON plants(created_at DESC);
 
+-- Growth photos added to a planting journey over time.
+CREATE TABLE IF NOT EXISTS plant_updates (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  plant_id   INTEGER NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  photo      TEXT NOT NULL,
+  note       TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_updates_plant ON plant_updates(plant_id, created_at);
+
 CREATE TABLE IF NOT EXISTS reports (
   plant_id   INTEGER NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -55,6 +65,11 @@ export function openDb(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(SCHEMA);
+  // Columns added after the first release: add them to older databases.
+  const cols = new Set(db.prepare('PRAGMA table_info(plants)').all().map((c) => c.name));
+  for (const [name, def] of [['space', 'TEXT'], ['place', 'TEXT'], ['sun', 'TEXT'], ['last_watered_at', 'INTEGER']]) {
+    if (!cols.has(name)) db.exec(`ALTER TABLE plants ADD COLUMN ${name} ${def}`);
+  }
   return db;
 }
 

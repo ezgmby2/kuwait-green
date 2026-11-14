@@ -4,8 +4,28 @@
 import { ApiError } from './api.js';
 import { zoneAt } from './map.js';
 
-const DB_NAME = 'kuwait-green-demo';
-const fail = (status, msg) => { throw new ApiError(status, msg); };
+const DB_NAME = 'kuwait-green-demo-v2';
+const AR_ERRORS = {
+  'Could not load the map': 'تعذّر تحميل الخريطة', 'Could not load plant list': 'تعذّر تحميل قائمة النباتات',
+  'Username must be 3–24 letters, numbers or underscores': 'اسم المستخدم يجب أن يكون ٣–٢٤ حرفًا إنجليزيًا أو رقمًا أو _',
+  'Password must be at least 8 characters': 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل', 'That username is taken': 'اسم المستخدم مستخدم من قبل',
+  'Wrong username or password': 'اسم المستخدم أو كلمة المرور غير صحيحة', 'Please sign in first': 'سجّل الدخول أولًا',
+  'Please add a photo of your plant': 'أضف صورة لنبتتك من فضلك', 'Photo is too large (max 6 MB)': 'الصورة كبيرة جدًا (الحد ٦ ميغابايت)',
+  'Unknown plant type': 'نوع نبتة غير معروف', 'Invalid location': 'موقع غير صالح',
+  'That location is outside Kuwait\'s mapped areas. Pick a spot on land inside Kuwait.': 'هذا الموقع خارج مناطق الكويت. اختر مكانًا على اليابسة داخل الكويت.',
+  'Plant not found': 'النبتة غير موجودة', 'Only the grower can update this journey': 'فقط صاحب الرحلة يمكنه تحديثها', 'You can only remove your own plants': 'يمكنك حذف نباتاتك فقط', 'You can\'t report your own plant': 'لا يمكنك الإبلاغ عن نبتتك',
+};
+const fail = (status, msg) => {
+  const ar = document.documentElement.lang === 'ar';
+  let text = ar ? AR_ERRORS[msg] : null;
+  if (ar && !text) {
+    const m = msg.match(/^(.+) must be at most (\d+) characters$/) || msg.match(/^(.+) is required$/);
+    const fields = { Username: 'اسم المستخدم', 'Display name': 'الاسم الظاهر', Nickname: 'الاسم المميز', Note: 'الملاحظة', 'Plant type': 'نوع النبتة' };
+    if (m && m[2]) text = `${fields[m[1]] || m[1]} يجب ألا يتجاوز ${m[2]} حرفًا`;
+    else if (m) text = `${fields[m[1]] || m[1]} مطلوب`;
+  }
+  throw new ApiError(status, text || msg);
+};
 const DAY = 86_400_000;
 
 // ---------- IndexedDB helpers ----------
@@ -111,8 +131,27 @@ async function serialize(p, viewerId, usersById) {
     createdAt: p.createdAt,
     grower: { username: u?.username ?? '?', displayName: u?.displayName ?? '?' },
     mine: own,
+    space: p.space ?? null, place: p.place ?? null, sun: p.sun ?? null,
+    updatesCount: (p.updates || []).length,
+    lastUpdateAt: (p.updates || []).length ? p.updates[p.updates.length - 1].createdAt : null,
+    ...(own ? {
+      waterDays: sp ? sp.waterDays : 3,
+      lastWateredAt: p.lastWateredAt ?? null,
+      nextWaterAt: (p.lastWateredAt || p.createdAt) + (sp ? sp.waterDays : 3) * DAY,
+    } : {}),
   };
 }
+async function ownedPlant(id) {
+  const viewer = await currentUserId();
+  if (!viewer) fail(401, 'Please sign in first');
+  const p = await get('plants', Number(id));
+  if (!p) fail(404, 'Plant not found');
+  if (p.userId !== viewer) fail(403, 'Only the grower can update this journey');
+  return { p, viewer };
+}
+const updateUrls = new Map();
+const updateUrl = (u) => { if (!updateUrls.has(u.id)) updateUrls.set(u.id, URL.createObjectURL(u.photo)); return updateUrls.get(u.id); };
+const pickFrom = (v, list) => (list.includes(v) ? v : null);
 async function usersMap() { return new Map((await getAll('users')).map((u) => [u.id, u])); }
 const visible = (p) => !p.hidden;
 
@@ -142,7 +181,7 @@ async function seedIfEmpty() {
   if (await get('meta', 'seeded')) return;
   await put('meta', true, 'seeded');
   await loadZones(); const sp = (await loadSpecies()).filter((x) => x.id !== 'other');
-  const growers = [['sara_k', 'Sara'], ['abdullah88', 'Abdullah'], ['green_fahad', 'Fahad'], ['noura_plants', 'Noura'], ['yousef_q8', 'Yousef'], ['maryam_garden', 'Maryam']];
+  const growers = [['sara_k', 'سارة'], ['abdullah88', 'عبدالله'], ['green_fahad', 'فهد'], ['noura_plants', 'نورة'], ['yousef_q8', 'يوسف'], ['maryam_garden', 'مريم']];
   const ids = [];
   for (const [username, displayName] of growers) {
     ids.push(await put('users', { username, usernameLower: username, displayName, salt: '', hash: '!demo-account-no-login', createdAt: Date.now() - 40 * DAY }));
@@ -151,7 +190,7 @@ async function seedIfEmpty() {
   const hot = ['Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya', 'Salmiya',
     'Rumaithiya', 'Rumaithiya', 'Rumaithiya', 'Rumaithiya', 'Hawalli', 'Hawalli', 'Hawalli', 'Surra', 'Surra', 'Surra',
     'Fahaheel', 'Fahaheel', 'Kifan', 'Jahra', 'Qortuba', 'Egaila', 'Mangaf', 'Yarmouk', 'Failaka Island'];
-  const notes = ['Planted with my kids this weekend 🌱', 'Watering every evening after sunset', 'Our neighbourhood is getting greener!', null, 'First try — wish me luck', null];
+  const notes = ['زرعتها مع أطفالي هذا الأسبوع 🌱', 'أسقيها كل مساء بعد الغروب', 'منطقتنا صارت أكثر خضرة!', null, 'أول تجربة لي — تمنّوا لي التوفيق', null];
   let seed = 7;
   const rnd = () => ((seed = (seed * 48271) % 2147483647) / 2147483647);
   for (let i = 0; i < hot.length; i++) {
@@ -192,7 +231,9 @@ export const localApi = {
   /** Demo-only shortcut so visitors can try everything without making an account. */
   async guest() {
     const n = Math.floor(1000 + Math.random() * 9000);
-    const user = { username: `guest_${n}`, usernameLower: `guest_${n}`, displayName: `Guest ${n}`, salt: '', hash: '!guest', createdAt: Date.now() };
+    const ar = document.documentElement.lang === 'ar';
+    const displayName = ar ? `ضيف ${n.toLocaleString('ar-KW', { useGrouping: false })}` : `Guest ${n}`;
+    const user = { username: `guest_${n}`, usernameLower: `guest_${n}`, displayName, salt: '', hash: '!guest', createdAt: Date.now() };
     user.id = await put('users', user);
     await put('meta', user.id, 'session');
     return { user: publicUser(user) };
@@ -227,6 +268,7 @@ export const localApi = {
       greenZones: Object.keys(zoneCounts).length,
       totalZones: zones.zones.length,
       zoneCounts,
+      points: plants.map((p) => [coarse(p.lng), coarse(p.lat)]),
       topZones: Object.entries(zoneCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, n]) => {
         const z = zonesById.get(id); return { id, name: z.name, governorate: z.governorate, plants: n };
       }),
@@ -272,9 +314,40 @@ export const localApi = {
     const plant = {
       userId: viewer, zoneId: zone.id, species: sp, nickname: cleanText(fd.get('nickname'), 40, 'Nickname'),
       note: cleanText(fd.get('note'), 280, 'Note'), lat, lng, photo, hidden: false, reports: [], createdAt: Date.now(),
+      space: pickFrom(fd.get('space'), ['small', 'medium', 'large']), place: pickFrom(fd.get('place'), ['balcony', 'roof', 'ground', 'indoor']),
+      sun: pickFrom(fd.get('sun'), ['full', 'partial', 'shade']), lastWateredAt: null, updates: [],
     };
     plant.id = await put('plants', plant);
     return { plant: await serialize(plant, viewer, await usersMap()) };
+  },
+
+  async plant(id) {
+    await loadZones();
+    const viewer = await currentUserId();
+    const p = await get('plants', Number(id));
+    if (!p || (p.hidden && p.userId !== viewer)) fail(404, 'Plant not found');
+    return {
+      plant: await serialize(p, viewer, await usersMap()),
+      updates: (p.updates || []).map((u) => ({ id: u.id, photoUrl: updateUrl(u), note: u.note, createdAt: u.createdAt })),
+    };
+  },
+
+  async waterPlant(id) {
+    const { p, viewer } = await ownedPlant(id);
+    p.lastWateredAt = Date.now();
+    await put('plants', p);
+    return { plant: await serialize(p, viewer, await usersMap()) };
+  },
+
+  async addUpdate(id, fd) {
+    const { p } = await ownedPlant(id);
+    const photo = fd.get('photo');
+    if (!(photo instanceof Blob) || !photo.size) fail(400, 'Please add a photo of your plant');
+    if (photo.size > 6 * 1024 * 1024) fail(413, 'Photo is too large (max 6 MB)');
+    const u = { id: `${p.id}-${Date.now()}`, photo, note: cleanText(fd.get('note'), 280, 'Note'), createdAt: Date.now() };
+    p.updates = [...(p.updates || []), u];
+    await put('plants', p);
+    return { update: { id: u.id, photoUrl: updateUrl(u), note: u.note, createdAt: u.createdAt } };
   },
 
   async deletePlant(id) {

@@ -38,7 +38,9 @@ export function zoneAt(zones, lng, lat) {
 }
 
 export class KuwaitMap {
-  constructor(container, zones, { onZoneClick, onPick, pickMode = false, label = 'Map' } = {}) {
+  constructor(container, zones, { onZoneClick, onPick, pickMode = false, label = 'Map', namer = (z) => z.name } = {}) {
+    this.namer = namer;
+    this.counts = {};
     this.container = container;
     this.zones = zones;
     this.onZoneClick = onZoneClick;
@@ -65,13 +67,14 @@ export class KuwaitMap {
       const path = svgEl('path', { d: this.pathFor(z.geometry), class: 'zone lvl-0' });
       path.dataset.id = z.id;
       const title = svgEl('title');
-      title.textContent = z.name;
+      title.textContent = namer(z);
       path.appendChild(title);
       this.g.appendChild(path);
       this.paths.set(z.id, path);
     }
+    this.dotGroup = svgEl('g', { class: 'dots' });
     this.pinGroup = svgEl('g');
-    this.svg.append(this.g, this.pinGroup);
+    this.svg.append(this.g, this.dotGroup, this.pinGroup);
     container.replaceChildren(this.svg);
     container.tabIndex = 0;
     this.applyViewBox();
@@ -100,6 +103,9 @@ export class KuwaitMap {
     // Keep the pin a constant on-screen size.
     const scale = w / this.home.w;
     this.pinGroup.querySelectorAll('[data-r]').forEach((c) => c.setAttribute('r', Number(c.dataset.r) * scale));
+    // Dots shrink a little less than the map when zooming in, so they stay visible but don't cover areas.
+    const dotR = 4.2 * Math.pow(scale, 0.75);
+    this.dotGroup.querySelectorAll('circle').forEach((c) => c.setAttribute('r', dotR));
   }
 
   // Screen point (client px) -> SVG user coordinates.
@@ -158,14 +164,42 @@ export class KuwaitMap {
     this.applyViewBox();
   }
 
+  /** Change how area names are shown (e.g. after switching language). */
+  setNamer(namer) { this.namer = namer; this.setCounts(this.counts); }
+
   setCounts(counts) {
+    this.counts = counts;
     for (const [id, path] of this.paths) {
       const lvl = levelFor(counts[id] || 0);
       path.classList.remove('lvl-0', 'lvl-1', 'lvl-2', 'lvl-3', 'lvl-4');
       path.classList.add(`lvl-${lvl}`);
       const z = this.zones.find((zz) => zz.id === id);
-      path.querySelector('title').textContent = `${z.name} — ${counts[id] || 0}`;
+      path.querySelector('title').textContent = `${this.namer(z)} — ${counts[id] || 0}`;
     }
+  }
+
+  /** One green dot per planting journey ([lng, lat] pairs, already rounded for privacy). */
+  setPoints(points = []) {
+    const frag = document.createDocumentFragment();
+    const seen = new Map();
+    for (const [lng, lat] of points) {
+      // Several journeys at the same rounded spot fan out slightly so each one shows.
+      const key = `${lng},${lat}`;
+      const n = seen.get(key) || 0; seen.set(key, n + 1);
+      const angle = n * 2.4, dist = n ? 0.004 * Math.sqrt(n) : 0;
+      const [x, y] = this.project(lng + Math.cos(angle) * dist, lat + Math.sin(angle) * dist);
+      frag.appendChild(svgEl('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 3, class: 'dot' }));
+    }
+    this.dotGroup.replaceChildren(frag);
+    this.applyViewBox();
+  }
+
+  /** Briefly pulse the newest dot (the user's own journey). */
+  pulseNewest(lng, lat) {
+    const [x, y] = this.project(lng, lat);
+    const ring = svgEl('circle', { cx: x, cy: y, r: 6 * (this.vb.w / this.home.w), class: 'dot-ring' });
+    this.dotGroup.appendChild(ring);
+    setTimeout(() => ring.remove(), 3500);
   }
 
   highlight(id) {
@@ -291,7 +325,7 @@ export class KuwaitMap {
       this.container.parentElement.appendChild(this.tooltip);
     }
     const rect = this.container.parentElement.getBoundingClientRect();
-    this.tooltip.textContent = this.tooltipText ? this.tooltipText(z) : z.name;
+    this.tooltip.textContent = this.tooltipText ? this.tooltipText(z) : this.namer(z);
     this.tooltip.style.left = `${e.clientX - rect.left}px`;
     this.tooltip.style.top = `${e.clientY - rect.top}px`;
     this.tooltip.hidden = false;
