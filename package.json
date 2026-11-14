@@ -1,10 +1,11 @@
 {
   "name": "kuwait-green",
+  "productName": "Kuwait Green",
   "version": "1.0.0",
   "description": "Kuwait Green — log the plants you grow and watch Kuwait's map turn from brown to green.",
   "private": true,
   "type": "module",
-  "main": "server/index.js",
+  "main": "electron/main.cjs",
   "engines": {
     "node": ">=22.13"
   },
@@ -13,11 +14,109 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "build:zones": "node scripts/build-zones.mjs",
     "seed": "node --disable-warning=ExperimentalWarning scripts/seed.mjs",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "desktop": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
   },
   "license": "MIT",
   "dependencies": {
     "express": "^5.3.0",
     "multer": "^2.5.0"
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.1"
+  },
+  "author": {
+    "name": "Kuwait Green"
+  },
+  "homepage": "https://github.com/ezgmby2/kuwait-green",
+  "build": {
+    "appId": "com.kuwaitgreen.app",
+    "productName": "Kuwait Green",
+    "copyright": "Kuwait Green contributors",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "server/**",
+      "public/**",
+      "data/zones.json",
+      "build/icon.png",
+      "package.json"
+    ],
+    "artifactName": "Kuwait-Green-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Kuwait-Green-${version}-Windows-Portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kuwait Green",
+      "artifactName": "Kuwait-Green-${version}-Windows-Setup.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.lifestyle"
+    },
+    "dmg": {
+      "artifactName": "Kuwait-Green-${version}-macOS-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Education",
+      "maintainer": "Kuwait Green"
+    },
+    "appImage": {
+      "artifactName": "Kuwait-Green-${version}-Linux.${ext}"
+    },
+    "deb": {
+      "artifactName": "Kuwait-Green-${version}-Linux.${ext}"
+    }
   }
 }

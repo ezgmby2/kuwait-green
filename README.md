@@ -29,7 +29,40 @@ The goal: spread awareness and make Kuwait greener, one plant at a time.
 | Abuse | Rate limits on API, login and upload. Users can report posts, and a post is hidden after 3 reports. You can delete only your own plants |
 | Headers | CSP, HSTS (in production), X-Frame-Options DENY, COOP/CORP, Referrer-Policy, Permissions-Policy |
 
-## Run it
+## Desktop app (no terminal needed)
+
+Download the installer for your computer from the **[Releases page](https://github.com/ezgmby2/kuwait-green/releases/latest)**:
+
+| Your computer | File |
+| --- | --- |
+| Windows | `Kuwait-Green-…-Windows-Setup.exe` (or `…-Windows-Portable.exe` to run without installing) |
+| Mac with Apple chip (M1–M4) | `Kuwait-Green-…-macOS-arm64.dmg` |
+| Mac with Intel chip | `Kuwait-Green-…-macOS-x64.dmg` |
+| Linux | `Kuwait-Green-…-Linux.AppImage` or `.deb` |
+
+Then double-click it like any other app. Use **Help → Load Demo Plants…** to see the map turn green right away.
+
+### Opening the app the first time
+
+The app isn't code-signed yet (signing certificates cost money), so your computer warns you once:
+
+- **Windows:** "Windows protected your PC" → click **More info → Run anyway**.
+- **Mac:** open the app, click **Done** on the warning, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+- **Linux (AppImage):** right-click → Properties → allow executing as a program, then double-click.
+
+### How the desktop app works
+
+The app starts the Kuwait Green server inside itself, listening only on your computer (`127.0.0.1`), and shows it in its own window.
+Your account, plants and photos are saved in your user data folder (**File → Open Data Folder**).
+**Each desktop install has its own map.** To have everyone in Kuwait share one map, host the server online (see below).
+GPS location may not work in the desktop app; pick your area from the list or tap the map instead.
+
+### Building the installers
+
+Pushing a tag such as `v1.0.1` runs `.github/workflows/desktop.yml`, which builds all installers and publishes them as a GitHub Release.
+To build on your own machine: `npm run dist` (for the current OS), or `npm run desktop` to run it without packaging.
+
+## Run it as a web server
 
 Requires **Node.js 22.13+**. It uses the built-in `node:sqlite`, so there are no native modules to compile.
 
@@ -64,6 +97,7 @@ docker run -p 3000:3000 -v kuwait-green-data:/app/var kuwait-green
 ## Architecture
 
 ```
+electron/main.cjs  Desktop app: starts the server on localhost and opens a secure window
 public/            Front-end (vanilla JS ES modules, no build step)
   js/map.js        SVG map renderer: projection, pan/pinch-zoom, colouring
   js/app.js        Views, plant logging, auth, celebrations

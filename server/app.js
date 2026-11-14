@@ -50,6 +50,12 @@ export function createApp(config) {
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
   app.use(securityHeaders(config));
+  if (config.allowedHosts) {
+    // Desktop mode: the server listens on localhost only. Rejecting unknown Host headers blocks
+    // DNS-rebinding attacks where a website points its own domain at 127.0.0.1.
+    // The list is read on every request because the desktop app fills it in after the port is chosen.
+    app.use((req, res, next) => (config.allowedHosts.includes(req.get('Host')) ? next() : res.status(421).send('Misdirected request')));
+  }
 
   // ---------- Prepared statements ----------
   const q = {
