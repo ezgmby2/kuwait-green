@@ -1,8 +1,8 @@
 name: Build desktop apps
 
 # Builds Windows, macOS and Linux installers.
-# - Push a tag like v1.0.1 to publish them as a GitHub Release.
-# - Or run it by hand from the Actions tab; the files appear under the run's "Artifacts".
+# - Run it from the Actions tab ("Run workflow"), or push a tag like v1.0.1, to publish a GitHub Release.
+#   The release is tagged v<version from package.json>; bump the version for each new release.
 on:
   push:
     tags: ['v*']
@@ -58,16 +58,25 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Work out the release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT";
+          else echo "tag=v$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          name: Kuwait Green ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Kuwait Green ${{ steps.tag.outputs.tag }}
+          make_latest: true
           body: |
             ## Download Kuwait Green 🪴
 

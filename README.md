@@ -59,7 +59,7 @@ GPS location may not work in the desktop app; pick your area from the list or ta
 
 ### Building the installers
 
-Pushing a tag such as `v1.0.1` runs `.github/workflows/desktop.yml`, which builds all installers and publishes them as a GitHub Release.
+Running the **Build desktop apps** workflow (Actions tab → Run workflow) builds all installers and publishes them as a GitHub Release tagged with the version in `package.json`. Bump the version before each new release.
 To build on your own machine: `npm run dist` (for the current OS), or `npm run desktop` to run it without packaging.
 
 ## Run it as a web server
